@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>3D 视差穿梭生成器</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Noto Sans SC', -apple-system, sans-serif;
+    background: #f5f5f0;
+    color: #1a1a1a;
+    min-height: 100vh;
+  }
+  .app {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+  }
+  .header { text-align: center; margin-bottom: 24px; }
+  .header h1 { font-size: 22px; font-weight: 500; letter-spacing: 2px; }
+  .header p { font-size: 13px; color: #888; margin-top: 6px; }
+
+  .upload-zone {
+    width: 100%;
+    aspect-ratio: 16/9;
+    border-radius: 12px;
+    border: 2px dashed #ccc;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: #fafaf8;
+    transition: all 0.3s;
+  }
+  .upload-zone:hover { border-color: #999; background: #f0f0ec; }
+  .upload-zone .icon { font-size: 48px; color: #ccc; margin-bottom: 12px; }
+
+  .canvas-wrap {
+    width: 100%;
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  canvas {
+    width: 100%;
+    aspect-ratio: 16/9;
+    display: block;
+    background: #0a0a12;
+    border-radius: 12px;
+  }
+  .overlay-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    font-size: 12px;
+    padding: 5px 14px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .overlay-btn:hover { background: rgba(0,0,0,0.75); }
+
+  .section { margin-top: 18px; }
+  .label { font-size: 12px; color: #888; margin-bottom: 8px; letter-spacing: 1px; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    padding: 9px 18px; border-radius: 8px;
+    border: 1px solid #ddd; background: #fff;
+    color: #333; font-size: 13px; font-family: inherit;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn:hover { background: #f0f0ec; }
+  .btn.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .btn-sm {
+    padding: 5px 14px; font-size: 12px; border-radius: 6px;
+    border: 1px solid #ddd; background: #fff; color: #555;
+    font-family: inherit; cursor: pointer;
+  }
+  .btn-sm:hover { background: #f0f0ec; }
+  .btn-sm.danger { color: #c44; border-color: #e99; }
+
+  .slider-row { display: flex; align-items: center; gap: 12px; }
+  input[type="range"] {
+    -webkit-appearance: none; flex: 1; height: 4px;
+    border-radius: 2px; background: #ddd; outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 20px; height: 20px;
+    border-radius: 50%; background: #1a1a1a; cursor: pointer;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: none; background: #1a1a1a; cursor: pointer;
+  }
+
+  .layer-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 8px;
+    background: #fff; border: 1px solid #eee;
+    margin-bottom: 8px;
+  }
+  .layer-thumb {
+    width: 56px; height: 36px; border-radius: 4px;
+    object-fit: cover; background: #eee;
+  }
+  .layer-name {
+    flex: 1; font-size: 13px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .layer-depth {
+    font-size: 11px; color: #aaa; min-width: 36px; text-align: center;
+  }
+
+  .tip-box {
+    padding: 14px 18px; border-radius: 8px;
+    background: #eef6ff; color: #336;
+    font-size: 13px; line-height: 1.7; margin-top: 20px;
+  }
+
+  @media (max-width: 600px) {
+    .app { padding: 16px 12px 40px; }
+    .header h1 { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <h1>3D 视差穿梭生成器</h1>
+    <p>上传多张图片 → 自动生成 Mental Canvas 风格的纵深穿梭动画</p>
+  </div>
+  <div id="main"></div>
+</div>
+
+<input type="file" id="fileInput" accept="image/*" multiple style="display:none">
+
+<script>
+const $ = id => document.getElementById(id);
+const fileInput = $('fileInput');
+const mainEl = $('main');
+
+let layers = [];
+let playing = true;
+let speed = 4;
+let depthStrength = 5;
+let animStyle = 'push';
+let time = 0;
+let raf = null;
+let cv, ctx;
+
+// ===== FILE HANDLING =====
+function loadFiles(files) {
+  const arr = Array.from(files).filter(f => f.type.startsWith('image/'));
+  if (!arr.length) return;
+  let loaded = 0;
+  arr.forEach((file) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        layers.push({
+          src: e.target.result,
+          img: img,
+          name: file.name,
+        });
+        loaded++;
+        if (loaded === arr.length) {
+          playing = true;
+          render();
+          startAnimation();
+        }
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+fileInput.addEventListener('change', e => {
+  if (e.target.files.length) loadFiles(e.target.files);
+  fileInput.value = '';
+});
+
+// ===== ANIMATION =====
+function startAnimation() {
+  if (raf) cancelAnimationFrame(raf);
+  cv = $('parallaxCanvas');
+  if (!cv) return;
+  ctx = cv.getContext('2d');
+  
+  function resize() {
+    const r = cv.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = r.width * dpr;
+    cv.height = r.height * dpr;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  let last = performance.now();
+
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    if (playing) time += (speed / 60) * dt * 8;
+
+    const r = cv.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const W = r.width;
+    const H = r.height;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#0a0a12';
+    ctx.fillRect(0, 0, W, H);
+
+    const n = layers.length;
+    if (n === 0) {
+      // Demo animation
+      drawDemo(ctx, W, H);
+    } else {
+      // Draw layers with parallax
+      for (let i = 0; i < n; i++) {
+        const layer = layers[i];
+        if (!layer.img) continue;
+
+        const layerFactor = i / Math.max(1, n - 1);
+        const dm = depthStrength * 0.12;
+        let ox = 0, oy = 0, sc = 1;
+
+        if (animStyle === 'push') {
+          sc = 1 + layerFactor * dm * 0.35 + Math.sin(time * 0.5) * layerFactor * dm * 0.18;
+          ox = Math.sin(time * 0.3) * layerFactor * dm * 15;
+          oy = Math.cos(time * 0.25) * layerFactor * dm * 10;
+        } else if (animStyle === 'sway') {
+          ox = Math.sin(time * 0.7 + i * 0.5) * layerFactor * dm * 60;
+          oy = Math.cos(time * 0.5 + i * 0.3) * layerFactor * dm * 30;
+          sc = 1 + layerFactor * dm * 0.18;
+        } else if (animStyle === 'rotate') {
+          ox = Math.sin(time * 0.6) * layerFactor * dm * 45;
+          oy = Math.cos(time * 0.4) * layerFactor * dm * 25;
+          sc = 1 + layerFactor * dm * 0.22;
+        } else if (animStyle === 'zoom') {
+          const zc = (time * 0.3) % (Math.PI * 2);
+          sc = 1 + layerFactor * dm * 0.45 * (1 + Math.sin(zc)) * 0.5;
+        }
+
+        ctx.save();
+        ctx.translate(W / 2 + ox, H / 2 + oy);
+        ctx.scale(sc, sc);
+
+        if (animStyle === 'rotate') {
+          const angle = Math.sin(time * 0.4) * layerFactor * dm * 0.06;
+          ctx.rotate(angle);
+        }
+
+        ctx.translate(-W / 2, -H / 2);
+
+        const imgR = layer.img.width / layer.img.height;
+        const canR = W / H;
+        let dw, dh, dx, dy;
+        if (imgR > canR) {
+          dh = H * 1.2;
+          dw = dh * imgR;
+        } else {
+          dw = W * 1.2;
+          dh = dw / imgR;
+        }
+        dx = (W - dw) / 2;
+        dy = (H - dh) / 2;
+
+        ctx.drawImage(layer.img, dx, dy, dw, dh);
+        ctx.restore();
+      }
+    }
+
+    // Vignette
+    const vg = ctx.createRadialGradient(W / 2, H / 2, W * 0.2, W / 2, H / 2, W * 0.72);
+    vg.addColorStop(0, 'transparent');
+    vg.addColorStop(1, 'rgba(0,0,0,0.4)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, W, H);
+
+    raf = requestAnimationFrame(frame);
+  }
+  raf = requestAnimationFrame(frame);
+}
+
+function drawDemo(ctx, W, H) {
+  const colors = ['#1a1a2e', '#16213e', '#0f3460', '#533483', '#e94560'];
+  for (let i = 0; i < 5; i++) {
+    const f = i / 4;
+    const dm = depthStrength * 0.12;
+    let sc = 1 + f * dm * 0.3 + Math.sin(time * 0.5) * f * dm * 0.15;
+    let ox = Math.sin(time * 0.3 + i) * f * dm * 20;
+    let oy = Math.cos(time * 0.25 + i) * f * dm * 12;
+
+    ctx.save();
+    ctx.translate(W / 2 + ox, H / 2 + oy);
+    ctx.scale(sc, sc);
+    ctx.translate(-W / 2, -H / 2);
+
+    ctx.fillStyle = colors[i];
+    ctx.globalAlpha = 0.5 + f * 0.5;
+
+    if (i === 0) {
+      ctx.fillRect(0, 0, W, H);
+    } else {
+      ctx.beginPath();
+      const baseY = H - f * H * 0.75;
+      ctx.moveTo(-20, baseY);
+      for (let x = -20; x <= W + 20; x += 15) {
+        const wave = Math.sin(x * 0.008 + i * 1.8 + time * 0.3) * 35 * (1 + f);
+        ctx.lineTo(x, baseY + wave);
+      }
+      ctx.lineTo(W + 20, H + 20);
+      ctx.lineTo(-20, H + 20);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  // Demo text
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.font = '500 16px "Noto Sans SC", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('上传图片后这里显示你的视差动画', W / 2, H / 2);
+}
+
+// ===== RENDER UI =====
+function render() {
+  const hasLayers = layers.length > 0;
+
+  const animModes = [
+    { key: 'push', label: '纵深推进' },
+    { key: 'sway', label: '左右摇摆' },
+    { key: 'rotate', label: '旋转穿梭' },
+    { key: 'zoom', label: '呼吸缩放' },
+  ];
+
+  let layersHTML = '';
+  if (hasLayers) {
+    layersHTML = `
+      <div class="section">
+        <div class="label">图层顺序（第一张最远，最后一张最近）</div>
+        ${layers.map((l, i) => `
+          <div class="layer-item">
+            <img class="layer-thumb" src="${l.src}" alt="">
+            <div class="layer-name">${l.name}</div>
+            <div class="layer-depth">${i === 0 ? '最远' : i === layers.length - 1 ? '最近' : '第' + (i + 1) + '层'}</div>
+            <button class="btn-sm" data-move-up="${i}" ${i === 0 ? 'disabled style="opacity:0.3"' : ''}>上移</button>
+            <button class="btn-sm" data-move-down="${i}" ${i === layers.length - 1 ? 'disabled style="opacity:0.3"' : ''}>下移</button>
+            <button class="btn-sm danger" data-remove="${i}">删除</button>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  mainEl.innerHTML = `
+    ${hasLayers ? `
+      <div class="canvas-wrap">
+        <canvas id="parallaxCanvas"></canvas>
+        <button class="overlay-btn" id="resetBtn">重新开始</button>
+      </div>
+    ` : `
+      <div class="upload-zone" id="uploadZone">
+        <div class="icon">+</div>
+        <div style="font-size:15px;color:#666">点击上传多张图片</div>
+        <div style="font-size:12px;color:#aaa;margin-top:6px">选择 2-8 张，按从远到近的顺序</div>
+      </div>
+    `}
+
+    ${!hasLayers ? `
+      <div style="margin-top:12px">
+        <div class="label">演示预览（上传图片后替换）</div>
+        <div class="canvas-wrap">
+          <canvas id="parallaxCanvas"></canvas>
+        </div>
+      </div>
+    ` : ''}
+
+    <div class="section btn-row" style="align-items:center">
+      <button class="btn ${playing ? 'active' : ''}" id="playBtn">${playing ? '暂停' : '播放'}</button>
+      <button class="btn" id="addBtn">${hasLayers ? '添加更多图层' : '上传图片'}</button>
+    </div>
+
+    <div class="section">
+      <div class="label">动画模式</div>
+      <div class="btn-row">
+        ${animModes.map(a => `<button class="btn ${animStyle === a.key ? 'active' : ''}" data-anim="${a.key}">${a.label}</button>`).join('')}
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="label">动画速度</div>
+      <div class="slider-row">
+        <span style="font-size:12px;color:#aaa">慢</span>
+        <input type="range" id="speedSlider" min="1" max="10" step="1" value="${speed}">
+        <span style="font-size:12px;color:#aaa">快</span>
+        <span style="font-size:14px;font-weight:500;min-width:24px;text-align:center">${speed}</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="label">纵深强度</div>
+      <div class="slider-row">
+        <span style="font-size:12px;color:#aaa">浅</span>
+        <input type="range" id="depthSlider" min="1" max="10" step="1" value="${depthStrength}">
+        <span style="font-size:12px;color:#aaa">深</span>
+        <span style="font-size:14px;font-weight:500;min-width:24px;text-align:center">${depthStrength}</span>
+      </div>
+    </div>
+
+    ${layersHTML}
+
+    <div class="tip-box">
+      <strong>使用技巧：</strong><br>
+      1. 用 AI 生成同一场景的不同层次（天空、远山、建筑、前景），分别保存<br>
+      2. 点「上传图片」一次选多张，或用「添加更多图层」逐张添加<br>
+      3. 第一张图会放在最远处，最后一张在最近处，可用上移/下移调整<br>
+      4. 调整纵深强度控制层间距离感，选择动画模式改变穿梭方式<br>
+      5. 效果满意后用电脑录屏保存为视频素材
+    </div>
+  `;
+
+  // Bind events
+  if ($('uploadZone')) {
+    $('uploadZone').onclick = () => fileInput.click();
+    $('uploadZone').addEventListener('dragover', e => e.preventDefault());
+    $('uploadZone').addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files.length) loadFiles(e.dataTransfer.files); });
+  }
+
+  if ($('resetBtn')) {
+    $('resetBtn').onclick = () => { layers = []; playing = true; time = 0; render(); startAnimation(); };
+  }
+
+  $('playBtn').onclick = () => { playing = !playing; render(); startAnimation(); };
+  $('addBtn').onclick = () => fileInput.click();
+
+  document.querySelectorAll('[data-anim]').forEach(btn => {
+    btn.onclick = () => { animStyle = btn.dataset.anim; render(); startAnimation(); };
+  });
+
+  $('speedSlider').oninput = e => { speed = parseInt(e.target.value); render(); startAnimation(); };
+  $('depthSlider').oninput = e => { depthStrength = parseInt(e.target.value); render(); startAnimation(); };
+
+  document.querySelectorAll('[data-move-up]').forEach(btn => {
+    btn.onclick = () => {
+      const i = parseInt(btn.dataset.moveUp);
+      if (i > 0) { [layers[i], layers[i - 1]] = [layers[i - 1], layers[i]]; render(); startAnimation(); }
+    };
+  });
+  document.querySelectorAll('[data-move-down]').forEach(btn => {
+    btn.onclick = () => {
+      const i = parseInt(btn.dataset.moveDown);
+      if (i < layers.length - 1) { [layers[i], layers[i + 1]] = [layers[i + 1], layers[i]]; render(); startAnimation(); }
+    };
+  });
+  document.querySelectorAll('[data-remove]').forEach(btn => {
+    btn.onclick = () => {
+      layers.splice(parseInt(btn.dataset.remove), 1);
+      render(); startAnimation();
+    };
+  });
+
+  startAnimation();
+}
+
+render();
+</script>
+</body>
+</html>
