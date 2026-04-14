@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的网页作品集</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center; /* 让文字居中 */
+            margin-top: 50px;
+        }
+        ul {
+            list-style-type: none; /* 去掉列表前面的小圆点 */
+            padding: 0;
+        }
+        li {
+            margin: 20px 0; /* 让两个链接之间留点空隙 */
+        }
+        a {
+            text-decoration: none;
+            font-size: 20px;
+            color: #0366d6; /* 链接设为蓝色 */
+            border: 1px solid #0366d6; /* 加个边框像按钮一样 */
+            padding: 10px 20px;
+            border-radius: 5px;
+        }
+        a:hover {
+            background-color: #0366d6; /* 鼠标放上去会变色 */
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>欢迎来到我的个人主页</h1>
+    <p>点击下面的按钮查看我的不同网页：</p>
+
+    <ul>
+        <li><a href="old.html">查看我的第一个项目（旧网页）</a></li>
+        <li><a href="new.html">查看我的最新项目（新网页）</a></li>
+    </ul>
+
+</body>
+</html>
