@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>图片切割工具</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'Noto Sans SC', -apple-system, sans-serif;
+    background: #f5f5f0;
+    color: #1a1a1a;
+    min-height: 100vh;
+  }
+  .app {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .header h1 {
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    color: #1a1a1a;
+  }
+  .header p {
+    font-size: 13px;
+    color: #888;
+    margin-top: 6px;
+  }
+
+  .upload-zone {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border-radius: 12px;
+    border: 2px dashed #ccc;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: #fafaf8;
+    transition: all 0.3s;
+  }
+  .upload-zone:hover {
+    border-color: #999;
+    background: #f0f0ec;
+  }
+  .upload-zone .icon {
+    font-size: 48px;
+    color: #ccc;
+    margin-bottom: 12px;
+  }
+  .upload-zone .text1 {
+    font-size: 15px;
+    color: #666;
+  }
+  .upload-zone .text2 {
+    font-size: 12px;
+    color: #aaa;
+    margin-top: 6px;
+  }
+
+  .image-area {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border-radius: 12px;
+    background: #e8e8e4;
+    position: relative;
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+  }
+  .image-area img {
+    position: absolute;
+    pointer-events: none;
+  }
+
+  .h-line-handle {
+    position: absolute;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    z-index: 10;
+  }
+  .h-line-handle .line {
+    width: 100%;
+    height: 2px;
+    background: rgba(255,70,70,0.9);
+    box-shadow: 0 0 8px rgba(255,70,70,0.4);
+  }
+  .v-line-handle {
+    position: absolute;
+    width: 20px;
+    display: flex;
+    justify-content: center;
+    z-index: 10;
+  }
+  .v-line-handle .line {
+    height: 100%;
+    width: 2px;
+    background: rgba(70,140,255,0.9);
+    box-shadow: 0 0 8px rgba(70,140,255,0.4);
+  }
+  .line-label {
+    position: absolute;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: #fff;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .h-line-handle .line-label {
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255,70,70,0.9);
+  }
+  .v-line-handle .line-label {
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(70,140,255,0.9);
+  }
+
+  .img-info {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+  .change-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    font-size: 12px;
+    padding: 5px 14px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+  }
+  .change-btn:hover { background: rgba(0,0,0,0.7); }
+
+  .section { margin-top: 18px; }
+  .label {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    padding: 9px 18px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    background: #fff;
+    color: #333;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn:hover { background: #f5f5f0; }
+  .btn.active {
+    background: #1a1a1a;
+    color: #fff;
+    border-color: #1a1a1a;
+  }
+  .btn-sm {
+    padding: 5px 14px;
+    font-size: 12px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    background: #fff;
+    color: #555;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .btn-sm:hover { background: #f0f0ec; }
+  .btn-action {
+    padding: 11px 32px;
+    border-radius: 8px;
+    border: none;
+    background: #1a1a1a;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-action:hover { background: #333; }
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  input[type="range"] {
+    -webkit-appearance: none;
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: #ddd;
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #1a1a1a;
+    cursor: pointer;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: none;
+    background: #1a1a1a;
+    cursor: pointer;
+  }
+
+  .size-info {
+    font-size: 13px;
+    color: #888;
+    margin-top: 8px;
+  }
+
+  .preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .preview-grid {
+    display: grid;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .preview-card {
+    border-radius: 8px;
+    border: 1px solid #e0e0dc;
+    overflow: hidden;
+    background: #fff;
+  }
+  .preview-card img {
+    width: 100%;
+    display: block;
+    max-height: 220px;
+    object-fit: contain;
+    background: #f8f8f6;
+  }
+  .preview-card .info {
+    padding: 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: #999;
+  }
+
+  .tip-box {
+    padding: 14px 18px;
+    border-radius: 8px;
+    background: #eef6ff;
+    color: #336;
+    font-size: 13px;
+    line-height: 1.7;
+    margin-top: 20px;
+  }
+  .custom-ctrl {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .custom-hint {
+    font-size: 12px;
+    color: #aaa;
+  }
+
+  @media (max-width: 600px) {
+    .app { padding: 16px 12px 40px; }
+    .header h1 { font-size: 18px; }
+    .image-area, .upload-zone { aspect-ratio: 3 / 2.5; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <div class="header">
+    <h1>图片切割工具</h1>
+    <p>上传图片 → 选择切法 → 一键保存所有切片</p>
+  </div>
+  <div id="main"></div>
+</div>
+
+<input type="file" id="fileInput" accept="image/*" style="display:none">
+
+<script>
+const $ = id => document.getElementById(id);
+const fileInput = $('fileInput');
+const main = $('main');
+
+let state = {
+  image: null,
+  img: null,
+  imgW: 0, imgH: 0,
+  mode: 'grid',
+  cols: 2, rows: 2,
+  customLines: { h: [0.5], v: [0.5] },
+  previews: [],
+  showPreview: false,
+  dragging: null,
+};
+
+function getDisplayRect(container) {
+  if (!state.img || !container) return { x: 0, y: 0, w: 0, h: 0 };
+  const cw = container.clientWidth;
+  const ch = container.clientHeight;
+  const scale = Math.min(cw / state.imgW, ch / state.imgH);
+  const w = state.imgW * scale;
+  const h = state.imgH * scale;
+  return { x: (cw - w) / 2, y: (ch - h) / 2, w, h };
+}
+
+function getLines() {
+  if (state.mode === 'grid') {
+    const h = [], v = [];
+    for (let i = 1; i < state.rows; i++) h.push(i / state.rows);
+    for (let i = 1; i < state.cols; i++) v.push(i / state.cols);
+    return { h, v };
+  }
+  return state.customLines;
+}
+
+function render() {
+  if (!state.image) {
+    main.innerHTML = `
+      <div class="upload-zone" id="uploadZone">
+        <div class="icon">+</div>
+        <div class="text1">点击或拖拽上传图片</div>
+        <div class="text2">支持 JPG / PNG / WebP</div>
+      </div>
+      <div class="tip-box">
+        <strong>使用说明：</strong><br>
+        1. 上传你的 AI 生成图片<br>
+        2. 选择「均匀网格」按行列等分，或「自由切割」拖动切割线<br>
+        3. 点击「切割预览」查看每一块<br>
+        4. 点「全部下载」保存所有切片
+      </div>
+    `;
+    const uz = $('uploadZone');
+    uz.addEventListener('click', () => fileInput.click());
+    uz.addEventListener('dragover', e => { e.preventDefault(); uz.style.borderColor = '#999'; });
+    uz.addEventListener('dragleave', () => { uz.style.borderColor = '#ccc'; });
+    uz.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+    return;
+  }
+
+  const lines = getLines();
+  const totalPieces = (lines.h.length + 1) * (lines.v.length + 1);
+
+  let linesHTML = '';
+  // Will be positioned after render via JS
+  lines.h.forEach((pos, i) => {
+    linesHTML += `<div class="h-line-handle" data-type="h" data-index="${i}">
+      <div class="line"></div>
+      ${state.mode === 'custom' ? `<div class="line-label">${Math.round(pos * 100)}%</div>` : ''}
+    </div>`;
+  });
+  lines.v.forEach((pos, i) => {
+    linesHTML += `<div class="v-line-handle" data-type="v" data-index="${i}">
+      <div class="line"></div>
+      ${state.mode === 'custom' ? `<div class="line-label">${Math.round(pos * 100)}%</div>` : ''}
+    </div>`;
+  });
+
+  let controlsHTML = '';
+  if (state.mode === 'grid') {
+    controlsHTML = `
+      <div class="section">
+        <div class="label">列数</div>
+        <div class="slider-row">
+          <input type="range" id="colSlider" min="1" max="6" step="1" value="${state.cols}">
+          <span style="font-size:14px;font-weight:500;min-width:36px;text-align:center">${state.cols} 列</span>
+        </div>
+      </div>
+      <div class="section">
+        <div class="label">行数</div>
+        <div class="slider-row">
+          <input type="range" id="rowSlider" min="1" max="6" step="1" value="${state.rows}">
+          <span style="font-size:14px;font-weight:500;min-width:36px;text-align:center">${state.rows} 行</span>
+        </div>
+      </div>
+      <div class="size-info">将切出 ${state.rows * state.cols} 块，每块 ${Math.round(state.imgW / state.cols)} × ${Math.round(state.imgH / state.rows)} 像素</div>
+    `;
+  } else {
+    controlsHTML = `
+      <div class="section">
+        <div class="custom-ctrl">
+          <button class="btn-sm" id="addV">+ 竖线</button>
+          <button class="btn-sm" id="rmV">- 竖线</button>
+          <button class="btn-sm" id="addH">+ 横线</button>
+          <button class="btn-sm" id="rmH">- 横线</button>
+        </div>
+        <div class="custom-hint">拖动红色横线和蓝色竖线调整位置，最小可到边缘 1%</div>
+      </div>
+    `;
+  }
+
+  let previewHTML = '';
+  if (state.showPreview && state.previews.length > 0) {
+    const gridCols = state.mode === 'grid' ? state.cols : (lines.v.length + 1);
+    previewHTML = `
+      <div class="section">
+        <div class="preview-header">
+          <div class="label">切割结果（${state.previews.length} 块）</div>
+          <button class="btn-sm" id="downloadAll">全部下载</button>
+        </div>
+        <div class="preview-grid" style="grid-template-columns: repeat(${Math.min(gridCols, 4)}, 1fr)">
+          ${state.previews.map((p, i) => `
+            <div class="preview-card">
+              <img src="${p.dataUrl}" alt="${p.label}">
+              <div class="info">
+                <span>${p.w}×${p.h}</span>
+                <button class="btn-sm" data-download="${i}">保存</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  main.innerHTML = `
+    <div class="image-area" id="imageArea">
+      <img src="${state.image}" id="displayImg">
+      ${linesHTML}
+      <div class="img-info">${state.imgW} × ${state.imgH}</div>
+      <button class="change-btn" id="changeBtn">换图</button>
+    </div>
+
+    <div class="section">
+      <div class="label">切割模式</div>
+      <div class="btn-row">
+        <button class="btn ${state.mode === 'grid' ? 'active' : ''}" id="modeGrid">均匀网格</button>
+        <button class="btn ${state.mode === 'custom' ? 'active' : ''}" id="modeCustom">自由切割</button>
+      </div>
+    </div>
+
+    ${controlsHTML}
+
+    <div class="section btn-row">
+      <button class="btn-action" id="splitBtn">切割预览</button>
+    </div>
+
+    ${previewHTML}
+  `;
+
+  // Position image and lines
+  const area = $('imageArea');
+  const rect = getDisplayRect(area);
+  const img = $('displayImg');
+  img.style.left = rect.x + 'px';
+  img.style.top = rect.y + 'px';
+  img.style.width = rect.w + 'px';
+  img.style.height = rect.h + 'px';
+
+  document.querySelectorAll('.h-line-handle').forEach(el => {
+    const i = parseInt(el.dataset.index);
+    el.style.left = rect.x + 'px';
+    el.style.top = (rect.y + lines.h[i] * rect.h - 10) + 'px';
+    el.style.width = rect.w + 'px';
+    el.style.cursor = state.mode === 'custom' ? 'row-resize' : 'default';
+  });
+  document.querySelectorAll('.v-line-handle').forEach(el => {
+    const i = parseInt(el.dataset.index);
+    el.style.top = rect.y + 'px';
+    el.style.left = (rect.x + lines.v[i] * rect.w - 10) + 'px';
+    el.style.height = rect.h + 'px';
+    el.style.cursor = state.mode === 'custom' ? 'col-resize' : 'default';
+  });
+
+  // Events
+  $('changeBtn').onclick = () => { state.image = null; state.previews = []; state.showPreview = false; render(); };
+  $('modeGrid').onclick = () => { state.mode = 'grid'; state.showPreview = false; render(); };
+  $('modeCustom').onclick = () => { state.mode = 'custom'; state.showPreview = false; render(); };
+  $('splitBtn').onclick = doSplit;
+
+  if (state.mode === 'grid') {
+    $('colSlider').oninput = e => { state.cols = parseInt(e.target.value); state.showPreview = false; render(); };
+    $('rowSlider').oninput = e => { state.rows = parseInt(e.target.value); state.showPreview = false; render(); };
+  }
+
+  if (state.mode === 'custom') {
+    $('addV').onclick = () => { addLine('v'); render(); };
+    $('rmV').onclick = () => { rmLine('v'); render(); };
+    $('addH').onclick = () => { addLine('h'); render(); };
+    $('rmH').onclick = () => { rmLine('h'); render(); };
+
+    // Drag lines
+    if (state.mode === 'custom') {
+      document.querySelectorAll('.h-line-handle, .v-line-handle').forEach(el => {
+        el.addEventListener('pointerdown', e => {
+          e.preventDefault();
+          state.dragging = { type: el.dataset.type, index: parseInt(el.dataset.index) };
+        });
+      });
+    }
+  }
+
+  // Download buttons
+  if ($('downloadAll')) {
+    $('downloadAll').onclick = () => {
+      state.previews.forEach((p, i) => {
+        setTimeout(() => dlPiece(p), i * 300);
+      });
+    };
+  }
+  document.querySelectorAll('[data-download]').forEach(btn => {
+    btn.onclick = () => dlPiece(state.previews[parseInt(btn.dataset.download)]);
+  });
+}
+
+// Pointer drag
+window.addEventListener('pointermove', e => {
+  if (!state.dragging) return;
+  const area = $('imageArea');
+  if (!area) return;
+  const cr = area.getBoundingClientRect();
+  const rect = getDisplayRect(area);
+  let pos;
+  if (state.dragging.type === 'h') {
+    pos = Math.max(0.01, Math.min(0.99, (e.clientY - cr.top - rect.y) / rect.h));
+  } else {
+    pos = Math.max(0.01, Math.min(0.99, (e.clientX - cr.left - rect.x) / rect.w));
+  }
+  state.customLines[state.dragging.type][state.dragging.index] = pos;
+  state.customLines[state.dragging.type].sort((a, b) => a - b);
+  state.showPreview = false;
+  render();
+});
+window.addEventListener('pointerup', () => { state.dragging = null; });
+
+function addLine(type) {
+  const arr = state.customLines[type];
+  const all = [0, ...arr, 1].sort((a, b) => a - b);
+  const gaps = [];
+  for (let i = 0; i < all.length - 1; i++) {
+    gaps.push({ pos: (all[i] + all[i + 1]) / 2, size: all[i + 1] - all[i] });
+  }
+  gaps.sort((a, b) => b.size - a.size);
+  if (gaps.length) arr.push(gaps[0].pos);
+  arr.sort((a, b) => a - b);
+}
+
+function rmLine(type) {
+  if (state.customLines[type].length > 0) state.customLines[type].pop();
+}
+
+function doSplit() {
+  const img = state.img;
+  const lines = getLines();
+  const hCuts = [0, ...lines.h, 1];
+  const vCuts = [0, ...lines.v, 1];
+  const pieces = [];
+
+  for (let r = 0; r < hCuts.length - 1; r++) {
+    for (let c = 0; c < vCuts.length - 1; c++) {
+      const sx = Math.round(vCuts[c] * img.width);
+      const sy = Math.round(hCuts[r] * img.height);
+      const sw = Math.round((vCuts[c + 1] - vCuts[c]) * img.width);
+      const sh = Math.round((hCuts[r + 1] - hCuts[r]) * img.height);
+      const cv = document.createElement('canvas');
+      cv.width = sw; cv.height = sh;
+      cv.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+      pieces.push({
+        dataUrl: cv.toDataURL('image/png'),
+        label: `${r + 1}_${c + 1}`,
+        row: r, col: c, w: sw, h: sh,
+      });
+    }
+  }
+  state.previews = pieces;
+  state.showPreview = true;
+  render();
+}
+
+function dlPiece(p) {
+  const a = document.createElement('a');
+  a.href = p.dataUrl;
+  a.download = `slice_${p.row + 1}_${p.col + 1}.png`;
+  a.click();
+}
+
+function loadFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      state.img = img;
+      state.imgW = img.width;
+      state.imgH = img.height;
+      state.image = e.target.result;
+      state.customLines = { h: [0.5], v: [0.5] };
+      state.previews = [];
+      state.showPreview = false;
+      render();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) loadFile(e.target.files[0]);
+});
+
+render();
+</script>
+</body>
+</html>
