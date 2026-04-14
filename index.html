@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>3D 纵深穿梭</title>
+<meta name="description" content="Interactive 3D Depth Shuttle Effect">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;500&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #08080f; font-family: 'Noto Sans SC', sans-serif; touch-action: none; }
+  canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+
+  .ui {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    padding: 16px 16px calc(env(safe-area-inset-bottom, 12px) + 12px);
+    background: linear-gradient(to top, rgba(8,8,15,0.92) 0%, rgba(8,8,15,0.6) 70%, transparent 100%);
+    z-index: 10;
+  }
+
+  .mode-row {
+    display: flex; gap: 8px; margin-bottom: 14px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .mode-row::-webkit-scrollbar { display: none; }
+
+  .mode-btn {
+    flex-shrink: 0;
+    padding: 10px 18px;
+    border-radius: 24px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.55);
+    font-size: 14px;
+    font-family: inherit;
+    font-weight: 300;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s;
+    outline: none;
+  }
+  .mode-btn.active {
+    background: rgba(0,220,180,0.12);
+    border-color: rgba(0,220,180,0.4);
+    color: rgba(0,220,180,0.95);
+    font-weight: 500;
+    box-shadow: 0 0 20px rgba(0,220,180,0.1);
+  }
+
+  .control-row {
+    display: flex; align-items: center; gap: 14px;
+  }
+  .control-label {
+    font-size: 12px; color: rgba(255,255,255,0.35);
+    letter-spacing: 2px; min-width: 36px;
+  }
+  .speed-val {
+    font-size: 13px; color: rgba(0,220,180,0.8);
+    min-width: 22px; text-align: center; font-weight: 500;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    flex: 1; height: 4px; border-radius: 2px;
+    background: rgba(255,255,255,0.1);
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: rgba(0,220,180,0.85);
+    box-shadow: 0 0 12px rgba(0,220,180,0.4);
+    cursor: pointer;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 24px; height: 24px; border-radius: 50%; border: none;
+    background: rgba(0,220,180,0.85);
+    box-shadow: 0 0 12px rgba(0,220,180,0.4);
+    cursor: pointer;
+  }
+
+  .color-row {
+    display: flex; align-items: center; gap: 14px; margin-top: 12px;
+  }
+  .color-opts {
+    display: flex; gap: 10px; flex: 1;
+  }
+  .color-dot {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer; transition: all 0.3s;
+    position: relative;
+  }
+  .color-dot.active {
+    border-color: rgba(255,255,255,0.7);
+    box-shadow: 0 0 12px currentColor;
+  }
+
+  .title-bar {
+    position: fixed; top: 0; left: 0; right: 0;
+    padding: calc(env(safe-area-inset-top, 12px) + 8px) 16px 12px;
+    background: linear-gradient(to bottom, rgba(8,8,15,0.7) 0%, transparent 100%);
+    z-index: 10;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .logo {
+    font-size: 13px; color: rgba(255,255,255,0.4);
+    letter-spacing: 3px; font-weight: 300;
+  }
+  .fps {
+    font-size: 11px; color: rgba(255,255,255,0.2);
+    font-family: monospace;
+  }
+
+  .vignette {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(ellipse at center, transparent 35%, rgba(8,8,15,0.5) 100%);
+    pointer-events: none; z-index: 2;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+<div class="vignette"></div>
+
+<div class="title-bar">
+  <div class="logo">3D 纵深穿梭</div>
+  <div class="fps" id="fps"></div>
+</div>
+
+<div class="ui">
+  <div class="mode-row" id="modeRow"></div>
+  <div class="control-row">
+    <span class="control-label">速度</span>
+    <input type="range" id="speedSlider" min="1" max="10" value="4" step="1">
+    <span class="speed-val" id="speedVal">4</span>
+  </div>
+  <div class="color-row">
+    <span class="control-label">色调</span>
+    <div class="color-opts" id="colorOpts"></div>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+let W, H, cx, cy, time = 0, speed = 4, mode = 'tunnel', hueShift = 0;
+
+// === RESIZE ===
+function resize() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = cv.width = window.innerWidth * dpr;
+  H = cv.height = window.innerHeight * dpr;
+  cx = W / 2; cy = H / 2;
+  cv.style.width = window.innerWidth + 'px';
+  cv.style.height = window.innerHeight + 'px';
+}
+resize();
+window.addEventListener('resize', resize);
+
+// === UI SETUP ===
+const modes = [
+  { key: 'tunnel', label: '隧道穿梭', icon: '◎' },
+  { key: 'warp', label: '星际跃迁', icon: '✦' },
+  { key: 'helix', label: '螺旋漩涡', icon: '❋' },
+  { key: 'grid', label: '网格纵深', icon: '⊞' },
+];
+
+const colors = [
+  { hue: 0, label: '青蓝', color: '#00dcc8' },
+  { hue: 60, label: '紫蓝', color: '#9966ff' },
+  { hue: 120, label: '橙红', color: '#ff6644' },
+  { hue: -30, label: '翠绿', color: '#22dd88' },
+  { hue: 30, label: '金黄', color: '#ffaa22' },
+];
+
+const modeRow = document.getElementById('modeRow');
+modes.forEach(m => {
+  const btn = document.createElement('button');
+  btn.className = 'mode-btn' + (m.key === mode ? ' active' : '');
+  btn.textContent = m.icon + ' ' + m.label;
+  btn.dataset.mode = m.key;
+  btn.addEventListener('click', () => {
+    mode = m.key;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+  modeRow.appendChild(btn);
+});
+
+const colorOpts = document.getElementById('colorOpts');
+colors.forEach((col, i) => {
+  const dot = document.createElement('div');
+  dot.className = 'color-dot' + (i === 0 ? ' active' : '');
+  dot.style.background = col.color;
+  dot.style.color = col.color;
+  dot.addEventListener('click', () => {
+    hueShift = col.hue;
+    document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+    dot.classList.add('active');
+  });
+  colorOpts.appendChild(dot);
+});
+
+const speedSlider = document.getElementById('speedSlider');
+const speedVal = document.getElementById('speedVal');
+speedSlider.addEventListener('input', e => {
+  speed = parseInt(e.target.value);
+  speedVal.textContent = speed;
+});
+
+// === PARTICLES ===
+function hue(base) { return (base + hueShift) % 360; }
+
+class Ring {
+  constructor(z) {
+    this.z = z; this.seg = 20; this.rot = Math.random() * 6.28;
+    this.holes = Array.from({length: this.seg}, () => Math.random() > 0.32);
+    this.rv = 0.85 + Math.random() * 0.3;
+  }
+  update(dt) {
+    this.z -= speed * 85 * dt; this.rot += dt * 0.35 * (speed / 4);
+    if (this.z < 5) { this.z = 1300; this.holes = Array.from({length: this.seg}, () => Math.random() > 0.32); this.rv = 0.85 + Math.random() * 0.3; }
+  }
+  draw() {
+    if (this.z < 5) return;
+    const s = 320 / this.z, r = 240 * s * this.rv;
+    const a = Math.min(1, 1 - this.z / 1300) * 0.88;
+    for (let i = 0; i < this.seg; i++) {
+      if (!this.holes[i]) continue;
+      const a1 = (i / this.seg) * 6.28 + this.rot;
+      const a2 = ((i + 1) / this.seg) * 6.28 + this.rot;
+      const h = hue(170 + this.z * 0.05 + time * 25);
+      ctx.strokeStyle = `hsla(${h},78%,56%,${a})`;
+      ctx.lineWidth = Math.max(0.5, 2.8 * s);
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a1) * r, cy + Math.sin(a1) * r);
+      ctx.lineTo(cx + Math.cos(a2) * r, cy + Math.sin(a2) * r);
+      ctx.stroke();
+    }
+  }
+}
+
+class Star {
+  constructor() { this.reset(); }
+  reset() {
+    const a = Math.random() * 6.28, d = 15 + Math.random() * 260;
+    this.x = Math.cos(a) * d; this.y = Math.sin(a) * d;
+    this.z = 700 + Math.random() * 1300; this.pz = this.z;
+    this.b = 0.4 + Math.random() * 0.6;
+  }
+  update(dt) { this.pz = this.z; this.z -= speed * 170 * dt; if (this.z < 1) this.reset(); }
+  draw() {
+    const sx = cx + (this.x / this.z) * 550, sy = cy + (this.y / this.z) * 550;
+    const px = cx + (this.x / this.pz) * 550, py = cy + (this.y / this.pz) * 550;
+    const a = Math.min(1, 1 - this.z / 2000) * this.b;
+    const sz = Math.max(0.4, (1 - this.z / 2000) * 3.2);
+    const h = hue(195 + this.z * 0.04 + time * 35);
+    ctx.strokeStyle = `hsla(${h},68%,66%,${a * 0.85})`;
+    ctx.lineWidth = sz * 0.7;
+    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(sx, sy); ctx.stroke();
+    ctx.fillStyle = `hsla(${h},48%,88%,${a})`;
+    ctx.beginPath(); ctx.arc(sx, sy, sz, 0, 6.28); ctx.fill();
+  }
+}
+
+class HelixP {
+  constructor(z) {
+    this.z = z; this.a = Math.random() * 6.28;
+    this.r = 80 + Math.random() * 130;
+    this.strand = Math.random() > 0.5 ? 1 : -1;
+    this.sz = 1 + Math.random() * 2.8;
+  }
+  update(dt) {
+    this.z -= speed * 72 * dt; this.a += dt * 2.5 * (speed / 4) * this.strand;
+    if (this.z < 5) { this.z = 1250; this.a = Math.random() * 6.28; }
+  }
+  draw() {
+    if (this.z < 5) return;
+    const s = 320 / this.z;
+    const x = cx + Math.cos(this.a) * this.r * s;
+    const y = cy + Math.sin(this.a) * this.r * s;
+    const a = Math.min(1, 1 - this.z / 1250) * 0.82;
+    const h = hue((this.strand > 0 ? 168 : 288) + time * 22);
+    ctx.fillStyle = `hsla(${h % 360},78%,58%,${a})`;
+    ctx.beginPath(); ctx.arc(x, y, this.sz * s, 0, 6.28); ctx.fill();
+    for (let t = 1; t <= 3; t++) {
+      const ta = this.a - 0.18 * t * this.strand;
+      const tx = cx + Math.cos(ta) * this.r * s;
+      const ty = cy + Math.sin(ta) * this.r * s;
+      ctx.fillStyle = `hsla(${h % 360},78%,58%,${a * (0.22 - t * 0.055)})`;
+      ctx.beginPath(); ctx.arc(tx, ty, this.sz * s * (1 - t * 0.15), 0, 6.28); ctx.fill();
+    }
+  }
+}
+
+class GLine {
+  constructor(z, horiz) {
+    this.z = z; this.h = horiz; this.off = (Math.random() - 0.5) * 650;
+  }
+  update(dt) {
+    this.z -= speed * 72 * dt;
+    if (this.z < 5) { this.z = 1500; this.off = (Math.random() - 0.5) * 650; }
+  }
+  draw() {
+    if (this.z < 5) return;
+    const s = 320 / this.z, a = Math.min(1, 1 - this.z / 1500) * 0.62;
+    const h = hue(158 + this.z * 0.05 + time * 18);
+    ctx.strokeStyle = `hsla(${h},68%,54%,${a})`;
+    ctx.lineWidth = Math.max(0.3, 1.6 * s);
+    ctx.beginPath();
+    if (this.h) { const y = cy + this.off * s; ctx.moveTo(0, y); ctx.lineTo(W, y); }
+    else { const x = cx + this.off * s; ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+    ctx.stroke();
+  }
+}
+
+class Dust {
+  constructor() {
+    this.x = (Math.random() - 0.5) * 3200;
+    this.y = (Math.random() - 0.5) * 3200;
+    this.z = Math.random() * 1500;
+    this.sz = 0.2 + Math.random() * 0.5;
+  }
+  update(dt) {
+    this.z -= speed * 50 * dt;
+    if (this.z < 1) { this.z = 1500; this.x = (Math.random() - 0.5) * 3200; this.y = (Math.random() - 0.5) * 3200; }
+  }
+  draw() {
+    const s = 220 / this.z, sx = cx + this.x * s, sy = cy + this.y * s;
+    if (sx < -5 || sx > W + 5 || sy < -5 || sy > H + 5) return;
+    const a = (1 - this.z / 1500) * 0.22;
+    ctx.fillStyle = `rgba(150,200,255,${a})`;
+    ctx.beginPath(); ctx.arc(sx, sy, this.sz * s, 0, 6.28); ctx.fill();
+  }
+}
+
+// INIT
+const rings = Array.from({length: 50}, (_, i) => new Ring(i * 26));
+const stars = Array.from({length: 350}, () => new Star());
+const helixes = Array.from({length: 220}, () => new HelixP(Math.random() * 1250));
+const glines = [...Array.from({length: 28}, (_, i) => new GLine(i * 55, true)), ...Array.from({length: 28}, (_, i) => new GLine(i * 55, false))];
+const dusts = Array.from({length: 130}, () => new Dust());
+
+// FPS
+let frames = 0, lastFps = performance.now();
+const fpsEl = document.getElementById('fps');
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now; time += dt;
+
+  // FPS counter
+  frames++;
+  if (now - lastFps > 1000) {
+    fpsEl.textContent = Math.round(frames * 1000 / (now - lastFps)) + ' fps';
+    frames = 0; lastFps = now;
+  }
+
+  // motion blur
+  ctx.fillStyle = `rgba(8,8,15,${0.15 + 0.06 / (speed / 4)})`;
+  ctx.fillRect(0, 0, W, H);
+
+  // center glow
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(W, H) * 0.4);
+  g.addColorStop(0, `rgba(0,20,40,${0.04 * (speed / 4)})`);
+  g.addColorStop(1, 'transparent');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+  switch (mode) {
+    case 'tunnel': rings.forEach(r => { r.update(dt); r.draw(); }); break;
+    case 'warp': stars.forEach(s => { s.update(dt); s.draw(); }); break;
+    case 'helix': helixes.forEach(h => { h.update(dt); h.draw(); }); break;
+    case 'grid': glines.forEach(l => { l.update(dt); l.draw(); }); break;
+  }
+  dusts.forEach(d => { d.update(dt); d.draw(); });
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
