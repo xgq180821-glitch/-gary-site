@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>家庭进步表</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f7f3ed;
+  --card: #fffdf9;
+  --text: #2c2416;
+  --text2: #4a3f30;
+  --accent: #b8860b;
+  --accent2: #8b6508;
+  --muted: #8a7b65;
+  --light: #b8a88e;
+  --lighter: #d4c8b4;
+  --border: #e6ddd0;
+  --border2: #ddd3c3;
+  --track: #f0ebe2;
+  --serif: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+  --display: 'ZCOOL XiaoWei', 'Noto Serif SC', serif;
+  --sans: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --c0: #d4764e; --c1: #6b8e5a; --c2: #5478a0; --c3: #b07bab; --c4: #c9943e;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:var(--lighter);border-radius:4px}
+input::placeholder,textarea::placeholder{color:var(--lighter)}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+#app{min-height:100vh;position:relative}
+
+/* Header */
+.header{position:sticky;top:0;z-index:200;background:rgba(247,243,237,0.94);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.header-inner{display:flex;justify-content:space-between;align-items:center;padding:12px 24px;max-width:1200px;margin:0 auto}
+.logo{font-family:var(--display);font-size:24px;color:var(--accent2);letter-spacing:2px}
+.logo small{font-size:12px;color:var(--light);font-family:var(--sans);letter-spacing:0;margin-left:8px;font-weight:400}
+.header-right{display:flex;gap:10px;align-items:center}
+.btn{border:none;border-radius:10px;padding:8px 16px;font-size:13px;cursor:pointer;font-family:var(--sans);font-weight:500;transition:all 0.2s}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent2)}
+.btn-ghost{background:none;border:1px solid var(--border2);color:var(--muted)}.btn-ghost:hover{background:var(--track)}
+.btn-back{background:none;border:none;font-size:15px;color:var(--muted);cursor:pointer;font-family:var(--sans)}
+.btn-icon{background:none;border:1px solid var(--border2);border-radius:10px;padding:7px 12px;font-size:16px;cursor:pointer;transition:all 0.2s}
+.btn-icon:hover{background:var(--track)}
+
+.main{padding:20px 24px 60px;max-width:1200px;margin:0 auto}
+
+/* ─── Table View ─── */
+.table-header-bar{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+.table-title{font-family:var(--display);font-size:20px;color:var(--accent2)}
+.table-subtitle{font-size:13px;color:var(--light);margin-top:2px}
+.stat-pills{display:flex;gap:16px}
+.stat-pill{text-align:center}
+.stat-pill .num{font-size:20px;font-weight:700;font-family:var(--serif);color:var(--accent)}
+.stat-pill .lbl{font-size:11px;color:var(--light)}
+
+.table-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--border);background:var(--card);animation:fadeIn 0.4s ease}
+.progress-table{width:100%;border-collapse:collapse;min-width:750px}
+
+.progress-table thead th{background:var(--accent);color:#fff;padding:0;font-weight:600;font-size:13px;border:none;text-align:center}
+.progress-table thead th:first-child{background:var(--accent2);text-align:center;min-width:110px;position:sticky;left:0;z-index:12}
+.th-inner{padding:12px 10px}
+.th-member{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px}
+.th-avatar{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;border:2px solid rgba(255,255,255,0.4)}
+.th-name{font-size:13px;font-weight:600;line-height:1.2}
+.th-nick{font-size:11px;opacity:0.8;font-weight:400}
+
+.progress-table tbody tr{transition:background 0.15s}
+.progress-table tbody tr:hover{background:rgba(184,134,11,0.03)}
+.progress-table tbody tr:nth-child(even){background:rgba(240,235,226,0.3)}
+.progress-table tbody tr:nth-child(even):hover{background:rgba(184,134,11,0.05)}
+
+.progress-table td{padding:0;border-bottom:1px solid var(--border);vertical-align:top;font-size:13px;line-height:1.7;color:var(--text2)}
+
+.td-week{position:sticky;left:0;z-index:5;background:var(--card);border-right:2px solid var(--border);min-width:110px;font-family:var(--serif);text-align:center;vertical-align:middle}
+.progress-table tbody tr:nth-child(even) .td-week{background:#faf7f1}
+.td-week-inner{padding:12px 10px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.td-week-num{font-size:15px;font-weight:700;color:var(--accent)}
+.td-week-range{font-size:10px;color:var(--light);line-height:1.3}
+.td-week-year{font-size:10px;color:var(--lighter)}
+.td-week-actions{display:flex;gap:4px;margin-top:6px}
+.td-week-actions button{background:none;border:none;font-size:13px;cursor:pointer;padding:2px 4px;border-radius:4px;transition:background 0.15s}
+.td-week-actions button:hover{background:var(--track)}
+.backfill-tag{display:inline-block;padding:1px 6px;border-radius:4px;font-size:9px;background:#fff3e0;color:#e65100;font-weight:500;margin-top:3px;font-family:var(--sans)}
+
+.td-content{padding:10px 14px;border-right:1px solid var(--track);min-width:130px;white-space:pre-wrap;word-break:break-word}
+.td-content:last-child{border-right:none}
+.td-empty{color:var(--lighter);font-style:italic;font-size:12px}
+
+/* ─── Edit View ─── */
+.edit-container{max-width:780px;margin:0 auto;animation:fadeIn 0.35s ease}
+.edit-header{margin-bottom:24px}
+.edit-title{font-family:var(--display);font-size:22px;color:var(--accent2);margin-bottom:4px}
+.edit-subtitle{font-size:13px;color:var(--light)}
+.week-picker{display:flex;gap:10px;align-items:center;margin-bottom:24px;flex-wrap:wrap}
+.week-picker label{font-size:13px;font-weight:600;color:var(--muted)}
+.week-select{padding:10px 14px;border-radius:10px;border:1px solid var(--border2);font-size:14px;font-family:var(--sans);background:var(--card);color:var(--text);outline:none;cursor:pointer}
+.week-select:focus{border-color:var(--accent)}
+.btn-this-week{padding:8px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--card);font-size:13px;cursor:pointer;font-family:var(--sans);color:var(--accent);transition:all 0.2s}
+.btn-this-week.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+.edit-block{background:var(--card);border-radius:14px;border:1px solid var(--border);margin-bottom:16px;overflow:hidden;animation:slideUp 0.35s ease both}
+.edit-block-head{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--track)}
+.edit-block-head .member-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.edit-block-head .name{font-size:15px;font-weight:600;color:var(--text);font-family:var(--serif)}
+.edit-block-head .nick{font-size:12px;color:var(--light);margin-left:4px;font-family:var(--sans)}
+.edit-block-head .char-count{margin-left:auto;font-size:12px;color:var(--lighter)}
+.edit-textarea{width:100%;padding:14px 18px;border:none;outline:none;font-size:14px;font-family:var(--sans);color:var(--text);line-height:1.8;resize:vertical;min-height:100px;background:transparent}
+.edit-textarea:focus{background:rgba(184,134,11,0.02)}
+
+.save-bar{position:sticky;bottom:0;background:rgba(247,243,237,0.95);backdrop-filter:blur(12px);padding:14px 0;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.save-bar .hint{font-size:13px;color:var(--light)}
+.save-bar .hint strong{color:var(--accent);font-weight:600}
+.btn-save{padding:12px 32px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all 0.2s}
+.btn-save:hover{background:var(--accent2)}
+
+/* ─── Report View ─── */
+.report-container{max-width:780px;margin:0 auto;animation:fadeIn 0.4s ease}
+.report-card{background:var(--card);border-radius:16px;border:1px solid var(--border);padding:28px 24px;margin-bottom:20px}
+.report-week-title{font-family:var(--display);font-size:22px;color:var(--accent2);text-align:center;margin-bottom:4px}
+.report-subtitle{text-align:center;font-size:13px;color:var(--light);margin-bottom:24px}
+.report-member{margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--track)}
+.report-member:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.report-member-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.report-member-head .member-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff}
+.report-member-head .rname{font-family:var(--serif);font-size:17px;font-weight:600}
+.report-member-head .rnick{color:var(--light);font-size:13px;margin-left:6px}
+.report-text{font-size:15px;line-height:1.85;color:var(--text2);white-space:pre-wrap;padding-left:52px}
+.report-empty{font-size:14px;color:var(--lighter);padding-left:52px;font-style:italic}
+
+/* ─── Stats ─── */
+.stats-container{max-width:780px;margin:0 auto;animation:fadeIn 0.35s ease}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:var(--card);border-radius:14px;padding:18px;text-align:center;border:1px solid var(--border)}
+.stat-card .sc-icon{font-size:24px;margin-bottom:6px}
+.stat-card .sc-value{font-size:26px;font-weight:700;font-family:var(--serif);color:var(--accent)}
+.stat-card .sc-label{font-size:12px;color:var(--light);margin-top:2px}
+.chart-card{background:var(--card);border-radius:14px;padding:18px;border:1px solid var(--border);margin-bottom:16px}
+.chart-title{font-size:15px;font-weight:600;color:var(--accent2);margin-bottom:14px;font-family:var(--serif)}
+.member-bar{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.member-bar .bar-label{font-size:13px;width:80px;flex-shrink:0;display:flex;align-items:center;gap:6px}
+.member-bar .bar-label .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.member-bar .bar-track{flex:1;height:14px;background:var(--track);border-radius:7px;overflow:hidden}
+.member-bar .bar-fill{height:100%;border-radius:7px;transition:width 0.6s ease}
+.member-bar .bar-count{font-size:12px;color:var(--muted);width:55px;text-align:right}
+.completion-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;text-align:center}
+.completion-item .c-avatar{width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;margin-bottom:6px}
+.completion-item .c-pct{font-size:18px;font-weight:700;font-family:var(--serif);color:var(--accent)}
+.completion-item .c-name{font-size:11px;color:var(--light)}
+
+.empty-state{text-align:center;padding:60px 20px;animation:fadeIn 0.4s}
+.empty-state .icon{font-size:52px;margin-bottom:16px}
+.empty-state p{color:var(--muted);font-size:15px;margin-bottom:16px}
+
+@media(max-width:600px){
+  .header-inner,.main{padding-left:14px;padding-right:14px}
+  .stats-grid{grid-template-columns:1fr}
+  .completion-grid{grid-template-columns:repeat(3,1fr);gap:14px}
+  .report-text,.report-empty{padding-left:0;margin-top:8px}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const MEMBERS = [
+  { id:'m1', name:'苟熙恒', nick:'大大', color:'var(--c0)', initial:'恒' },
+  { id:'m2', name:'苟熙岚', nick:'斧头', color:'var(--c1)', initial:'岚' },
+  { id:'m3', name:'苟尧',   nick:'爸爸', color:'var(--c2)', initial:'尧' },
+  { id:'m4', name:'闵婕',   nick:'妈妈', color:'var(--c3)', initial:'婕' },
+  { id:'m5', name:'晁秋玲', nick:'姐姐', color:'var(--c4)', initial:'玲' },
+];
+
+const STORAGE_KEY = 'family_progress_v2';
+let weeks = {};
+let currentView = 'home';
+let editWeek = getCurrentWeek();
+let reportWeek = null;
+
+function getCurrentWeek() {
+  const d = new Date();
+  const jan1 = new Date(d.getFullYear(), 0, 1);
+  const dayOfYear = Math.floor((d - jan1) / 86400000) + 1;
+  const weekNum = Math.ceil((dayOfYear + jan1.getDay()) / 7);
+  return d.getFullYear() + '-W' + String(weekNum).padStart(2, '0');
+}
+function parseWeek(wk) { const p = wk.split('-W'); return { year: +p[0], week: +p[1] }; }
+function weekDisplay(wk) { return '第' + parseWeek(wk).week + '周'; }
+function weekFullDisplay(wk) { const p = parseWeek(wk); return p.year + '年 第' + p.week + '周'; }
+function weekStartDate(wk) {
+  const { year, week } = parseWeek(wk);
+  const jan1 = new Date(year, 0, 1);
+  const s = new Date(year, 0, 1 + (week-1)*7 - jan1.getDay() + 1);
+  return (s.getMonth()+1) + '/' + s.getDate();
+}
+function weekEndDate(wk) {
+  const { year, week } = parseWeek(wk);
+  const jan1 = new Date(year, 0, 1);
+  const e = new Date(year, 0, 1 + (week-1)*7 - jan1.getDay() + 7);
+  return (e.getMonth()+1) + '/' + e.getDate();
+}
+function weekRange(wk) { return weekStartDate(wk) + ' ~ ' + weekEndDate(wk); }
+function getSortedWeeks() { return Object.keys(weeks).sort((a, b) => b.localeCompare(a)); }
+function generateWeekOptions() {
+  const cur = getCurrentWeek();
+  const { year, week } = parseWeek(cur);
+  const opts = [];
+  for (let i = 0; i < 24; i++) {
+    let w = week - i, y = year;
+    if (w < 1) { y--; w += 52; }
+    opts.push(y + '-W' + String(w).padStart(2, '0'));
+  }
+  return opts;
+}
+function save() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(weeks)); } catch(e) {} }
+function load() {
+  // Always start with the imported seed data
+  const seed = {"2025-W11":{"m1":"家默错误较多，结果第二天都对了。自己记得周四值日。背了沿对革","m2":"记住了几个单词。能重复完整的一句话，不结巴","m3":"自主吃补剂，关爱身体","m4":"游泳配速进步。福格模型理解更深刻了。驾驶技术提升，尤其是倒车","m5":"给大大吃饭编故事。","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W12":{"m1":"已经会贫对富，语文单元考试拿优","m2":"坚持在学习","m3":"能早睡","m4":"新公司业务探讨","m5":"研发新粗粮馒头，周一大扫除","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W13":{"m1":"给弟弟换衣服；帮忙做家务；家默优 优，主动读了很多书","m2":"整理鞋柜，会帮忙","m3":"回及时沟通问题和情绪，研究机器人；分析数据问题","m4":"期权策略，有耐心将故事和陪娃","m5":"让斧头自行车技术大进步；鱿鱼鸡汤好喝；番茄炒蛋特别好吃","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W15":{"m1":"周四全优 语文 英语，跟英语老师申诉漏写。直面自己的恐惧，坐了两次创","m2":"坐了过山车；上学很耿直","m3":"","m4":"跟妈妈好好说话","m5":"做了新菜鳝鱼，贝壳","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W16":{"m1":"期中作文拿优；他会攒着游泳币","m2":"走过路过不要错过；在家唱歌跳舞","m3":"学会期权，并实战","m4":"看书速度提升","m5":"跟大家坦诚沟通","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W17":{"m1":"会做一点贸易；主动吃鱼","m2":"睡前爱唱歌","m3":"现金流问题开始自己想方案了，而不是情绪","m4":"又发表了一篇文章；收拾了衣柜，断舍离","m5":"贝壳做了蒜蓉，挺好吃的。有一天饭菜特别好吃，我吃了两碗","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W18":{"m1":"会游泳了；单日三个数学全对；跟妙妙成为好朋友","m2":"唱的歌越来越多","m3":"看期权书","m4":"开始聚焦了，开始行动了，而不是看信息和学习；游泳在进步，高尔夫在进步","m5":"鲍鱼鸡汤很好，最近做的越来越好吃了","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W19":{"m1":"一个月来坚持擦药（自发）会做部分家务，会做馒头","m2":"自己穿脱睡衣","m3":"爬山陪娃很认真","m4":"聚焦目标，囊中取物","m5":"放假","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W20":{"m1":"自由泳能长游一点；会三国杀了，会自己买书，图书馆待到2点；完全独立完成作业，没要我陪","m2":"偶尔帮忙拿碗筷","m3":"看英文高尔夫书","m4":"不焦虑了，慢下来了。社交拉回来，跟代代联系了，跟儿子同学家长也热络起来","m5":"酸笋研发了新菜","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W21":{"m1":"游泳进步；运动进步；又被选为朗诵；自己独立完成作业，朗读英语","m2":"睡前会说让我贴贴你，我要亲一下","m3":"投资心得更稳健了，守的宁德和绿联","m4":"跟帽小刘和好解释清误会","m5":"编了个哭三岁的儿歌把斧头哄笑了","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W22":{"m1":"越野跑完赛6公里","m2":"","m3":"","m4":"集中精力看书，有目的的看","m5":"早餐现在非常丰盛","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W23":{"m1":"爱主动看书了，安徒生童话。数学语文要开窍了的感觉","m2":"收拾房间有点厉害。练童谣、长吸管、舌头训练器让结巴有好转","m3":"育儿更耐心，会跟高伟学","m4":"在保持一周一本书的节奏","m5":"自己做的鳝鱼很好吃","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W24":{"m1":"语文家默优，难考题拿了87","m2":"说话流利多了，联系儿歌","m3":"一直坚持跑步，学习3d打印","m4":"游泳2000米","m5":"创新早餐黑芝麻饼","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W25":{"m1":"语文考试拿优","m2":"","m3":"","m4":"","m5":"做鲳鱼","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W26":{"m1":"越野跑第四名","m2":"看英语动画片，单词量在涨","m3":"","m4":"","m5":"鲍鱼东坡肉","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W28":{"m1":"体能爆表，四个半小时运动\n自主阅读完结第一本书《了不起的狐狸爸爸》","m2":"晚上睡觉给我盖被子\n去帮我采购生日礼物，帮爸爸整理货物，主动不要饮料。","m3":"修了一把伞。","m4":"中英文阅读马拉松，速度效率都不错，认真做笔记","m5":"高温一直坚持早晚凉快时运动\n又做了新菜，炖了猪蹄","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W31":{"m1":"旅游期间体力很好。完结女巫三本。","m2":"说话越来越好。英语不错","m3":"遮字幕，用工具解决问题厉害","m4":"全英文环境，每天锻炼每天户外","m5":"带了个新鲜南瓜回来。馒头一直做的很好","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W33":{"m1":"英语坚持到D了，学单词很快","m2":"","m3":"会立即解决问题，比如眼镜，他的转转。控制饮食也非常好","m4":"我已经坚持三天每天锻炼肩膀了。项链搭配有经验了","m5":"姐姐的鸡蛋饼做的很完美。增加了新菜：炒鸡和烧莴笋","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W34":{"m1":"大大主动做奥数","m2":"斧头一天英语学了5本","m3":"处理泡泡危机的时候太帅了！太强大了","m4":"","m5":"做了杂粮馒头，培根豆腐","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W35":{"m1":"能早起七点半就去跑步","m2":"能看英文小猪佩奇","m3":"自驾吃苦耐劳","m4":"让自己慢下来了一点，能看剧","m5":"会做莎莎酱了，清理了玻璃窗","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W38":{"m1":"一直很贴心，我摔跤了会关心我。好吃的会给爸爸妈妈都分一点或者留一口。学习上，语文写字在进步，只是拼音错，过了两周拼音也在进步，没怎么错了。数学错误自动在减少","m2":"三天就适应了学校的午睡生活，跟爸爸越来越亲密，会贴着爸爸睡觉，会主动亲亲爸爸。做家务特别在行，很多东西能收拾得整整齐齐。","m3":"投资心态越来越稳，情绪也稳了一点点","m4":"学会了美甲。在逐渐康复肩膀","m5":"陪斧头上下学很用心，遇到说话不当的人，会为了斧头顶回去。","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W42":{"m1":"家默给我搬沙发；数学登顶一次；自助阅读到废寝忘食\n语数英三门都是优","m2":"会读wow 英语","m3":"房子的事情在挑大梁\n在迪士尼公开维护小朋友","m4":"恢复游泳和阅读。","m5":"松茸鸡汤很好；会自己抢火车票了；给我们从老家扛鸭蛋和柚子来","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W49":{"m1":"写字在进步，数学稳定","m2":"早上上学会在楼下喊我，说妈妈我去上学了。爱玩迷宫跟益智类游戏","m3":"找律师，不卑不亢；能跑半马了。","m4":"强制让自己放松，会正念，会约友人","m5":"搬家很卖力，累到腰酸。会烤鸡翅，用蒸烤一体机。","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W51":{"m1":"给我染指甲。breaking可以三角撑，帅呆了。几乎自己事自己做","m2":"斧头自己开了一瓶易拉罐可乐。上个月：摔倒的地方依然会去","m3":"在学会跟小朋友不情绪对话了，","m4":"期权策略在精进，先put 后cc.","m5":"姐姐自己去愚园路逛街，且给宝宝们买了三个蛋糕","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W52":{"m1":"模仿马市长表演，有点天赋；会直接表达想我了，要抱我。主动找字帖，将日常学的新字模仿到位。睡前很跟聊心事，说英语考了98非常非常开心","m2":"能短暂地离开我，跟姐姐睡。独立完成72块复杂拼图，且没有参照物。放学跟同学玩已经有领导风范，指挥众人。","m3":"会陪孩子学习；精神上支持我去游玩，真心希望我快乐。","m4":"拥抱所有可能性，能量极强。跟所有人的关系都很平和，君子之交淡如水。阅读和写作的习惯算是彻底养成了","m5":"我离开的三天让宝宝们吃蔬菜很多，户外运动也有，小松鼠在继续投喂。跟斧头睡的时候很细致，甚至在床周围铺了一圈点子，很细心。卤猪耳朵炒菜很好吃","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2025-W53":{"m1":"大大日记写得好 主动写  还写得很创意：迪日记 想数学全对； 教会了弟弟一首七绝；主动了解了微积分概念 以及递归 recursion 概念\n数学登顶一周，","m2":"背会了一首七绝；拼图进阶到88、96块\n可以100+块拼图，完成6岁级别","m3":"安排了三亚考察行程。出去玩主动报备。持续学习\n处理了很多琐事，有条不紊","m4":"收心神，能量足。\n着手口语","m5":"首次尝试了干贝粥，很成功。又做了改良版辣味麻婆豆腐，太好吃了，跟酸菜炖粉条很配。饭扫光\n早餐还在进化，今早十样sku","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2026-W01":{"m1":"我去三亚，他自己安排作业和阅读。语文基础题显著进步，字越写越好，尤其是笔画多的字，比如藏、熙\n昨天看牙医的时候，大大很礼貌地跟医生拜拜，以前不会","m2":"玩游戏switch有天赋，赛车控制的很好\n斧头去理发店理发了，终于不抗拒了","m3":"会想健身、瘦一点。今年收益好好做","m4":"遇诈骗果断拒绝，并走人。随心动，给友人买好看的东西\n税务问题又精进了一点","m5":"姐姐开始厨艺大爆发，创新蒸蛋、让宝宝吃了更多蔬菜。元旦在家吃素\n姐姐 早餐开始加低GI","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2026-W02":{"m1":"儿子慢慢进化成我喜欢的样子，学习自助且有自己的方法，运动体育都在行，也会坚持苦练","m2":"自己擦黑板，帮哥哥收拾垃圾。自己脱衣服洗澡，基本不闹情绪","m3":"把儿子的绘画作品做了一个动画","m4":"没有产出，接受自己没有产出。继续好好生活","m5":"基本每天创新一个菜","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2026-W03":{"m1":"视力很好","m2":"斧头接受跳舞了","m3":"每天陪大大街舞","m4":"陪孩子们学习，特别耐心","m5":"依然每天学新菜，新菜记录在备忘录","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2026-W04":{"m1":"练breaking 很辛苦","m2":"跳舞会说时间过得好快。认字很快，","m3":"搞定nas 给大家营造氛围","m4":"开始主攻小朋友任务闭环","m5":"完全不在小朋友面前看手机","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2026-W05":{"m1":"牙齿反颌有进步，十天能感觉到改善了。","m2":"跟姐姐睡的时候第二天会来看我，还质问为什么不去看他。上学会在窗前楼下跟我依依不舍；自己找三层书看；学字很快；英语也学得很主动，记忆特别好","m3":"在街舞领域深入研究","m4":"恢复看书节奏。股市心态回来了","m5":"还在做新菜，还开发了新的买菜地方","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2026-W06":{"m1":"会洗牌了；倒立等动作越来越好","m2":"","m3":"","m4":"","m5":"","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2026-W10":{"m1":"会照顾弟弟了，英语比较自动化运行；自己会早起去学校预习一下，争取不需努力","m2":"说话不结巴了；会亲人 哄人 求人；字基本学过的 都记住了；主动每天给姐姐洗菜","m3":"主动玩新电脑，摸索ai","m4":"知道自己的节奏，没有强求自己。每日力量训练，自重","m5":"每顿饭都做得好","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2026-W11":{"m1":"第一次主动预习","m2":"永远粘人，吃东西不会撒车上","m3":"玩雪茄，玩香水","m4":"看剧，心情放松","m5":"做五黑馒头给我乌发","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2026-W12":{"m1":"第一次周五学习就做完作业，最轻松的一周。每天英语都坚持了的","m2":"拼了两次乐高了，很有潜力；周教练称他得意门徒","m3":"制作自己小电影","m4":"会自己收心","m5":"每天不一样的菜已经信手拈来了","backfill":true,"updatedAt":"2026-04-15T00:00:00"},"2026-W16":{"m1":"现在基本每天有一次全对，数学也是前几名，英语朗读都是小红花。都很轻松","m2":"斧头自己会 记得周三锻炼","m3":"做了一个爆款小视频，攻略类，开了个好头。投资也很耐心","m4":"投资越来越耐心，也在真正试图搞清楚一个生意","m5":"姐姐两周前做了糯米饭，早餐极其丰富，还研究各种发酵方法","backfill":true,"updatedAt":"2026-04-15T00:00:00"}};
+  // Merge with any user edits from localStorage (user data wins on conflict)
+  weeks = JSON.parse(JSON.stringify(seed));
+  try {
+    const d = localStorage.getItem(STORAGE_KEY);
+    if (d) {
+      const saved = JSON.parse(d);
+      for (const wk in saved) {
+        weeks[wk] = saved[wk]; // user edits overwrite seed for that week
+      }
+    }
+  } catch(e) {}
+  save();
+}
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function getStats() {
+  const allWeeks = getSortedWeeks(), totalWeeks = allWeeks.length;
+  const memberWords = {}, memberWeeks = {};
+  MEMBERS.forEach(m => { memberWords[m.id] = 0; memberWeeks[m.id] = 0; });
+  allWeeks.forEach(wk => { const data = weeks[wk]; MEMBERS.forEach(m => { const t = (data[m.id]||'').trim(); if(t){memberWords[m.id]+=t.length;memberWeeks[m.id]++;} }); });
+  return { totalWeeks, memberWords, memberWeeks, totalWords: Object.values(memberWords).reduce((a,b)=>a+b,0) };
+}
+
+function render() {
+  const app = document.getElementById('app');
+  let html = '<header class="header"><div class="header-inner">';
+  if (currentView !== 'home') html += '<button class="btn-back" onclick="goHome()">← 返回主页</button>';
+  else html += '<div class="logo">家庭进步表<small>每周记录 · 共同成长</small></div>';
+  html += '<div class="header-right">';
+  if (currentView === 'home') {
+    html += '<button class="btn-icon" onclick="goStats()" title="统计">📊</button>';
+    html += '<button class="btn btn-primary" onclick="goEdit()">✏️ 写周记</button>';
+  }
+  html += '</div></div></header><main class="main">';
+  if (currentView === 'home') html += renderHome();
+  else if (currentView === 'edit') html += renderEdit();
+  else if (currentView === 'report') html += renderReport();
+  else if (currentView === 'stats') html += renderStats();
+  html += '</main>';
+  app.innerHTML = html;
+  if (currentView === 'edit') {
+    MEMBERS.forEach(m => { const ta = document.getElementById('ta-'+m.id); if(ta) ta.value = (weeks[editWeek]||{})[m.id]||''; });
+  }
+}
+
+function renderHome() {
+  const sorted = getSortedWeeks(), stats = getStats();
+  let h = '<div class="table-header-bar"><div><div class="table-title">成长记录总览</div><div class="table-subtitle">所有家庭成员的每周进步，一表尽览</div></div>';
+  h += '<div class="stat-pills"><div class="stat-pill"><div class="num">'+stats.totalWeeks+'</div><div class="lbl">周</div></div>';
+  h += '<div class="stat-pill"><div class="num">'+stats.totalWords+'</div><div class="lbl">总字数</div></div></div></div>';
+
+  if (!sorted.length) {
+    return h + '<div class="empty-state"><div class="icon">🌱</div><p>还没有记录，开始写第一篇家庭周记吧</p><button class="btn btn-primary" onclick="goEdit()">✏️ 开始记录</button></div>';
+  }
+
+  h += '<div class="table-wrap"><table class="progress-table"><thead><tr>';
+  h += '<th><div class="th-inner">📅 周次</div></th>';
+  MEMBERS.forEach(m => {
+    h += '<th><div class="th-member"><div class="th-avatar" style="background:'+m.color+'">'+m.initial+'</div><div class="th-name">'+m.name+'</div><div class="th-nick">'+m.nick+'</div></div></th>';
+  });
+  h += '</tr></thead><tbody>';
+
+  sorted.forEach(wk => {
+    const data = weeks[wk];
+    h += '<tr><td class="td-week"><div class="td-week-inner">';
+    h += '<div class="td-week-num">'+weekDisplay(wk)+'</div>';
+    h += '<div class="td-week-range">'+weekRange(wk)+'</div>';
+    h += '<div class="td-week-year">'+parseWeek(wk).year+'</div>';
+    if (data.backfill) h += '<div class="backfill-tag">补录</div>';
+    h += '<div class="td-week-actions"><button onclick="goEditWeek(\''+wk+'\')" title="编辑">✏️</button><button onclick="goReport(\''+wk+'\')" title="周报">📋</button><button onclick="handleDeleteWeek(\''+wk+'\')" title="删除" style="color:#c44">🗑</button></div>';
+    h += '</div></td>';
+    MEMBERS.forEach(m => {
+      const txt = (data[m.id]||'').trim();
+      h += '<td class="td-content">'+(txt ? esc(txt) : '<span class="td-empty">暂未记录</span>')+'</td>';
+    });
+    h += '</tr>';
+  });
+
+  h += '</tbody></table></div>';
+  return h;
+}
+
+function renderEdit() {
+  const curWeek = getCurrentWeek(), isBackfill = editWeek !== curWeek, data = weeks[editWeek] || {}, opts = generateWeekOptions();
+  let h = '<div class="edit-container"><div class="edit-header"><div class="edit-title">'+(isBackfill?'📅 补录周记':'✏️ 本周记录')+'</div><div class="edit-subtitle">在一个页面记录所有家人的进步</div></div>';
+  h += '<div class="week-picker"><label>选择周：</label><select class="week-select" onchange="editWeek=this.value;render()">';
+  opts.forEach(wk => {
+    h += '<option value="'+wk+'"'+(wk===editWeek?' selected':'')+'>'+weekFullDisplay(wk)+' ('+weekRange(wk)+')'+(wk===curWeek?' ← 本周':'')+(weeks[wk]?' ✓':'')+'</option>';
+  });
+  h += '</select><button class="btn-this-week '+(editWeek===curWeek?'active':'')+'" onclick="editWeek=getCurrentWeek();render()">本周</button></div>';
+
+  MEMBERS.forEach((m, i) => {
+    const txt = data[m.id] || '';
+    h += '<div class="edit-block" style="animation-delay:'+i*0.05+'s"><div class="edit-block-head">';
+    h += '<div class="member-avatar" style="background:'+m.color+'">'+m.initial+'</div>';
+    h += '<span class="name">'+m.name+'<span class="nick">'+m.nick+'</span></span>';
+    h += '<span class="char-count" id="cc-'+m.id+'">'+txt.length+' 字</span></div>';
+    h += '<textarea class="edit-textarea" id="ta-'+m.id+'" placeholder="记录'+m.nick+'这周的进步..." oninput="document.getElementById(\'cc-'+m.id+'\').textContent=this.value.length+\' 字\'"></textarea></div>';
+  });
+
+  const filled = MEMBERS.filter(m=>(data[m.id]||'').trim()).length;
+  const hasExisting = !!weeks[editWeek];
+  h += '<div class="save-bar"><div class="hint">已填 <strong>'+filled+'/5</strong> 人'+(isBackfill?' · 补录模式':'')+'</div><div style="display:flex;gap:10px">';
+  if (hasExisting) h += '<button style="padding:12px 16px;border-radius:12px;border:1px solid #f0d0d0;background:#fdf5f5;color:#c44;font-size:14px;cursor:pointer;font-family:var(--sans)" onclick="handleDeleteWeek(\''+editWeek+'\')">🗑 删除本周</button>';
+  h += '<button class="btn-save" onclick="handleSave()">💾 保存记录</button></div></div></div>';
+  return h;
+}
+
+function renderReport() {
+  if (!reportWeek || !weeks[reportWeek]) return '<div class="report-container"><div class="empty-state"><p>没有找到这周的记录</p></div></div>';
+  const data = weeks[reportWeek], filled = MEMBERS.filter(m=>(data[m.id]||'').trim()).length;
+  let h = '<div class="report-container"><div class="report-card"><div class="report-week-title">📋 '+weekFullDisplay(reportWeek)+'</div>';
+  h += '<div class="report-subtitle">'+weekRange(reportWeek)+' · '+filled+'/5 人已记录'+(data.backfill?' · 补录':'')+'</div>';
+  MEMBERS.forEach(m => {
+    const txt = (data[m.id]||'').trim();
+    h += '<div class="report-member"><div class="report-member-head"><div class="member-avatar" style="background:'+m.color+'">'+m.initial+'</div><span class="rname">'+m.name+'</span><span class="rnick">'+m.nick+'</span></div>';
+    h += (txt ? '<div class="report-text">'+esc(txt)+'</div>' : '<div class="report-empty">本周暂未记录</div>') + '</div>';
+  });
+  h += '</div><div style="display:flex;justify-content:center;gap:12px"><button class="btn btn-ghost" onclick="goEditWeek(\''+reportWeek+'\')">✏️ 编辑</button></div></div>';
+  return h;
+}
+
+function renderStats() {
+  const stats = getStats(), mxW = Math.max(...Object.values(stats.memberWords),1), mxWk = Math.max(...Object.values(stats.memberWeeks),1);
+  let h = '<div class="stats-container"><div class="edit-header"><div class="edit-title">📊 统计分析</div><div class="edit-subtitle">家庭成长数据一览</div></div>';
+  h += '<div class="stats-grid">';
+  h += '<div class="stat-card"><div class="sc-icon">📅</div><div class="sc-value">'+stats.totalWeeks+'</div><div class="sc-label">已记录周数</div></div>';
+  h += '<div class="stat-card"><div class="sc-icon">✍️</div><div class="sc-value">'+stats.totalWords+'</div><div class="sc-label">总字数</div></div>';
+  h += '<div class="stat-card"><div class="sc-icon">👨‍👩‍👧‍👦</div><div class="sc-value">5</div><div class="sc-label">家庭成员</div></div>';
+  h += '<div class="stat-card"><div class="sc-icon">📝</div><div class="sc-value">'+(stats.totalWeeks?Math.round(stats.totalWords/stats.totalWeeks):0)+'</div><div class="sc-label">每周平均字数</div></div></div>';
+
+  h += '<div class="chart-card"><h3 class="chart-title">记录完成率</h3><div class="completion-grid">';
+  MEMBERS.forEach(m => {
+    const pct = stats.totalWeeks ? Math.round(stats.memberWeeks[m.id]/stats.totalWeeks*100) : 0;
+    h += '<div class="completion-item"><div class="c-avatar" style="background:'+m.color+'">'+m.initial+'</div><div class="c-pct">'+pct+'%</div><div class="c-name">'+m.nick+'</div></div>';
+  });
+  h += '</div></div>';
+
+  h += '<div class="chart-card"><h3 class="chart-title">累计字数</h3>';
+  MEMBERS.forEach(m => { const w=stats.memberWords[m.id]; h+='<div class="member-bar"><div class="bar-label"><span class="dot" style="background:'+m.color+'"></span>'+m.nick+'</div><div class="bar-track"><div class="bar-fill" style="width:'+(w/mxW*100).toFixed(0)+'%;background:'+m.color+'"></div></div><span class="bar-count">'+w+' 字</span></div>'; });
+  h += '</div>';
+
+  h += '<div class="chart-card"><h3 class="chart-title">参与周数</h3>';
+  MEMBERS.forEach(m => { const w=stats.memberWeeks[m.id]; h+='<div class="member-bar"><div class="bar-label"><span class="dot" style="background:'+m.color+'"></span>'+m.nick+'</div><div class="bar-track"><div class="bar-fill" style="width:'+(w/mxWk*100).toFixed(0)+'%;background:'+m.color+'"></div></div><span class="bar-count">'+w+' 周</span></div>'; });
+  h += '</div></div>';
+  return h;
+}
+
+function goHome(){currentView='home';render();window.scrollTo(0,0)}
+function goEdit(){editWeek=getCurrentWeek();currentView='edit';render();window.scrollTo(0,0)}
+function goEditWeek(wk){editWeek=wk;currentView='edit';render();window.scrollTo(0,0)}
+function goReport(wk){reportWeek=wk;currentView='report';render();window.scrollTo(0,0)}
+function goStats(){currentView='stats';render();window.scrollTo(0,0)}
+
+function handleSave() {
+  const curWeek = getCurrentWeek(), isBackfill = editWeek !== curWeek;
+  const data = weeks[editWeek] || {};
+  MEMBERS.forEach(m => { const ta = document.getElementById('ta-'+m.id); if(ta) data[m.id] = ta.value; });
+  data.updatedAt = new Date().toISOString();
+  if (isBackfill && !weeks[editWeek]) data.backfill = true;
+  weeks[editWeek] = data;
+  save();
+  currentView = 'home'; render(); window.scrollTo(0,0);
+  showToast('✅ 保存成功');
+}
+
+function handleDeleteWeek(wk) {
+  if (!weeks[wk]) return;
+  if (!confirm('确定要删除「' + weekFullDisplay(wk) + '」的所有记录吗？此操作不可恢复。')) return;
+  delete weeks[wk];
+  save();
+  if (currentView === 'edit' && editWeek === wk) currentView = 'home';
+  render(); window.scrollTo(0,0);
+  showToast('🗑 已删除');
+}
+
+function showToast(msg) {
+  const toast = document.createElement('div');
+  toast.textContent = msg;
+  toast.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:10px 24px;border-radius:10px;font-size:14px;z-index:999;animation:fadeIn 0.3s ease;font-family:var(--sans)';
+  document.body.appendChild(toast);
+  setTimeout(()=>toast.remove(), 1800);
+}
+
+load(); render();
+</script>
+</body>
+</html>
