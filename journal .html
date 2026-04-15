@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日迹 - 日常记录工具</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #faf6f0;
+    --bg2: #f4ede3;
+    --card: #fff;
+    --text: #3d3425;
+    --text2: #4a3d2a;
+    --accent: #5c4a2e;
+    --muted: #8e7850;
+    --light: #b5a48a;
+    --lighter: #c5b89e;
+    --border: #e8dfd2;
+    --border2: #ece5d9;
+    --border3: #e0d6c8;
+    --track: #f5f0e8;
+    --font-serif: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+    --font-sans: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { font-family: var(--font-sans); background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%); color: var(--text); min-height: 100vh; }
+  ::-webkit-scrollbar { width: 0; height: 0; }
+  input::placeholder, textarea::placeholder { color: var(--lighter); }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+
+  #app { max-width: 520px; margin: 0 auto; min-height: 100vh; position: relative; }
+
+  /* Header */
+  .header { position: sticky; top: 0; z-index: 100; background: rgba(250,246,240,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+  .header-inner { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; }
+  .logo { font-size: 22px; font-family: var(--font-serif); font-weight: 700; color: var(--accent); }
+  .header-right { display: flex; gap: 10px; align-items: center; }
+  .btn-back { background: none; border: none; font-size: 15px; color: var(--muted); cursor: pointer; font-family: var(--font-sans); padding: 4px 0; }
+  .btn-stats { background: none; border: 1px solid #ddd3c3; border-radius: 10px; padding: 7px 12px; font-size: 16px; cursor: pointer; }
+  .btn-write { background: var(--accent); color: #fff; border: none; border-radius: 10px; padding: 8px 16px; font-size: 14px; cursor: pointer; font-family: var(--font-sans); font-weight: 500; }
+  .btn-write:hover { opacity: 0.9; }
+
+  .main { padding: 16px 20px 80px; }
+
+  /* Quick Stats */
+  .quick-stats { display: flex; justify-content: center; align-items: center; gap: 20px; padding: 18px 0; margin-bottom: 8px; }
+  .q-stat { display: flex; flex-direction: column; align-items: center; }
+  .q-stat-num { font-size: 24px; font-weight: 700; color: var(--accent); font-family: var(--font-serif); }
+  .q-stat-label { font-size: 12px; color: var(--light); margin-top: 2px; }
+  .q-stat-divider { width: 1px; height: 32px; background: #ddd3c3; }
+
+  /* Search */
+  .search-box { display: flex; align-items: center; gap: 8px; background: var(--card); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; border: 1px solid var(--border); }
+  .search-box input { flex: 1; border: none; outline: none; font-size: 14px; font-family: var(--font-sans); background: transparent; color: var(--text); }
+  .btn-clear { background: none; border: none; font-size: 14px; color: var(--light); cursor: pointer; display: none; }
+
+  /* Topic Filters */
+  .topic-filters { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 14px; margin-bottom: 6px; scrollbar-width: none; }
+  .topic-pill { display: flex; align-items: center; gap: 4px; padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border3); background: var(--card); font-size: 13px; cursor: pointer; white-space: nowrap; font-family: var(--font-sans); color: var(--accent); transition: all 0.2s; }
+  .topic-pill.active { background: rgba(92,74,46,0.08); border-color: var(--accent); }
+  .pill-count { background: rgba(92,74,46,0.12); border-radius: 10px; padding: 1px 7px; font-size: 11px; margin-left: 2px; }
+
+  /* Entry cards */
+  .entry-list { display: flex; flex-direction: column; gap: 12px; }
+  .entry-card { background: var(--card); border-radius: 14px; padding: 16px 18px; border: 1px solid var(--border2); cursor: pointer; transition: all 0.2s; animation: slideUp 0.4s ease both; }
+  .entry-card:hover { border-color: var(--lighter); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(92,74,46,0.06); }
+  .entry-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .entry-topic-badge { padding: 3px 10px; border-radius: 8px; font-size: 12px; font-weight: 500; }
+  .entry-date { font-size: 12px; color: var(--light); }
+  .entry-title { font-size: 16px; font-weight: 600; font-family: var(--font-serif); margin-bottom: 6px; color: var(--text); }
+  .entry-preview { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 10px; }
+  .entry-card-footer { display: flex; justify-content: space-between; align-items: center; }
+  .entry-word-count { font-size: 11px; color: var(--lighter); }
+
+  /* Empty state */
+  .empty-state { text-align: center; padding: 60px 20px; animation: fadeIn 0.4s ease; }
+  .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-state p { color: var(--muted); font-size: 15px; }
+
+  /* Write View */
+  .view { animation: fadeIn 0.35s ease; }
+  .view-title { font-family: var(--font-serif); font-size: 22px; font-weight: 700; margin-bottom: 20px; color: var(--accent); }
+  .form-section { margin-bottom: 22px; }
+  .form-label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
+  .title-input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border3); font-size: 16px; font-family: var(--font-serif); background: var(--card); color: var(--text); outline: none; }
+  .title-input:focus { border-color: var(--accent); }
+  .topic-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .topic-choice { display: flex; flex-direction: column; align-items: center; padding: 12px 8px; border-radius: 12px; border: 1.5px solid var(--border); background: var(--card); cursor: pointer; transition: all 0.2s; font-family: var(--font-sans); color: var(--accent); }
+  .topic-choice .tc-icon { font-size: 22px; }
+  .topic-choice .tc-label { font-size: 12px; margin-top: 4px; }
+  .topic-choice.active { transform: scale(1.05); }
+  .mood-row { display: flex; gap: 10px; justify-content: space-between; }
+  .mood-choice { display: flex; flex-direction: column; align-items: center; padding: 10px 6px; border-radius: 12px; border: 1.5px solid var(--border); background: var(--card); cursor: pointer; transition: all 0.2s; font-family: var(--font-sans); color: var(--accent); flex: 1; }
+  .mood-choice .mc-emoji { font-size: 28px; }
+  .mood-choice .mc-label { font-size: 11px; margin-top: 2px; }
+  .mood-choice.active { transform: scale(1.15); }
+  .content-textarea { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border3); font-size: 15px; font-family: var(--font-sans); background: var(--card); color: var(--text); outline: none; resize: vertical; line-height: 1.8; min-height: 200px; }
+  .content-textarea:focus { border-color: var(--accent); }
+  .char-count { text-align: right; font-size: 12px; color: var(--light); margin-top: 6px; }
+  .btn-save { width: 100%; padding: 14px; border-radius: 12px; border: none; background: var(--accent); color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; font-family: var(--font-sans); transition: all 0.2s; }
+  .btn-save:hover { opacity: 0.9; }
+  .btn-save.disabled { opacity: 0.5; pointer-events: none; }
+
+  /* Detail View */
+  .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .detail-header .entry-topic-badge { font-size: 14px; }
+  .detail-header .mood-icon { font-size: 26px; }
+  .detail-title { font-family: var(--font-serif); font-size: 24px; font-weight: 700; margin-bottom: 4px; color: var(--text); }
+  .detail-date { font-size: 14px; color: var(--light); margin-bottom: 24px; }
+  .detail-content { font-size: 15px; line-height: 1.85; color: var(--text2); margin-bottom: 24px; white-space: pre-wrap; }
+  .detail-meta { display: flex; gap: 16px; font-size: 13px; color: var(--light); padding: 14px 0; border-top: 1px solid var(--border2); margin-bottom: 16px; }
+  .detail-actions { display: flex; gap: 12px; }
+  .btn-edit { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #ddd3c3; background: var(--card); font-size: 14px; cursor: pointer; font-family: var(--font-sans); color: var(--accent); }
+  .btn-delete { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #f0d0d0; background: #fdf5f5; font-size: 14px; cursor: pointer; font-family: var(--font-sans); color: #c44; }
+  .btn-confirm-delete { flex: 1; padding: 12px; border-radius: 10px; border: none; background: #c44; font-size: 14px; cursor: pointer; font-family: var(--font-sans); color: #fff; font-weight: 600; }
+
+  /* Stats */
+  .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
+  .stat-card { background: var(--card); border-radius: 14px; padding: 18px 14px; text-align: center; border: 1px solid var(--border2); }
+  .stat-card .sc-icon { font-size: 24px; margin-bottom: 6px; }
+  .stat-card .sc-value { font-size: 26px; font-weight: 700; font-family: var(--font-serif); color: var(--accent); }
+  .stat-card .sc-label { font-size: 12px; color: var(--light); margin-top: 2px; }
+  .chart-card { background: var(--card); border-radius: 14px; padding: 18px; border: 1px solid var(--border2); margin-bottom: 16px; }
+  .chart-title { font-size: 15px; font-weight: 600; color: var(--accent); margin-bottom: 14px; font-family: var(--font-serif); }
+
+  /* Heatmap */
+  .heatmap-row { display: flex; gap: 3px; justify-content: space-between; }
+  .heatmap-col { display: flex; flex-direction: column; align-items: center; flex: 1; }
+  .heatmap-cell { width: 100%; aspect-ratio: 1; border-radius: 3px; min-width: 8px; }
+  .heatmap-label { font-size: 9px; color: var(--light); margin-top: 4px; }
+
+  /* Bar chart */
+  .bar-chart { display: flex; gap: 8px; align-items: flex-end; height: 120px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; }
+  .bar-track { width: 100%; height: 100px; background: var(--track); border-radius: 6px; display: flex; align-items: flex-end; overflow: hidden; }
+  .bar-fill { width: 100%; background: linear-gradient(to top, var(--muted), var(--lighter)); border-radius: 6px; transition: height 0.6s ease; min-height: 2px; }
+  .bar-label { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  /* Topic bars */
+  .topic-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .topic-bar-label { font-size: 13px; width: 60px; flex-shrink: 0; }
+  .topic-bar-track { flex: 1; height: 12px; background: var(--track); border-radius: 6px; overflow: hidden; }
+  .topic-bar-fill { height: 100%; border-radius: 6px; transition: width 0.6s ease; min-width: 2px; }
+  .topic-bar-count { font-size: 13px; color: var(--muted); width: 28px; text-align: right; }
+
+  /* Mood stats */
+  .mood-stats { display: flex; justify-content: space-around; }
+  .mood-stat-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .mood-stat-item .ms-emoji { font-size: 28px; }
+  .mood-stat-item .ms-pct { font-size: 13px; color: var(--muted); font-weight: 600; }
+  .mood-stat-item .ms-count { font-size: 11px; color: var(--light); }
+
+  /* Date picker */
+  .date-picker-row { display: flex; gap: 10px; align-items: center; }
+  .date-input { flex: 1; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border3); font-size: 15px; font-family: var(--font-sans); background: var(--card); color: var(--text); outline: none; appearance: none; -webkit-appearance: none; }
+  .date-input:focus { border-color: var(--accent); }
+  .btn-today { padding: 10px 16px; border-radius: 12px; border: 1px solid var(--border3); background: var(--card); font-size: 13px; cursor: pointer; font-family: var(--font-sans); color: var(--accent); white-space: nowrap; transition: all 0.2s; }
+  .btn-today:hover { background: var(--track); }
+  .btn-today.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .backfill-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 6px; font-size: 10px; background: #fff3e0; color: #e65100; font-weight: 500; margin-left: 6px; }
+  .date-hint { font-size: 12px; color: var(--light); margin-top: 6px; }
+  .date-hint.backfill { color: #e65100; }
+
+  /* Loading */
+  .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+  .loading .icon { font-size: 48px; animation: pulse 1.5s infinite; }
+  .loading p { color: var(--muted); margin-top: 16px; font-family: var(--font-serif); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="loading" id="loading">
+    <div class="icon">📔</div>
+    <p>加载中...</p>
+  </div>
+</div>
+
+<script>
+const TOPICS = [
+  { id: "life", label: "生活", icon: "☀️", color: "#E8A87C" },
+  { id: "work", label: "工作", icon: "💼", color: "#85CDCA" },
+  { id: "health", label: "健康", icon: "🌿", color: "#D5E68D" },
+  { id: "learn", label: "学习", icon: "📖", color: "#C3B1E1" },
+  { id: "mood", label: "心情", icon: "🌈", color: "#F7B7A3" },
+  { id: "idea", label: "灵感", icon: "💡", color: "#FFD36E" },
+];
+
+const MOODS = [
+  { id: "great", emoji: "😊", label: "很棒", color: "#4CAF50" },
+  { id: "good", emoji: "🙂", label: "不错", color: "#8BC34A" },
+  { id: "neutral", emoji: "😐", label: "一般", color: "#FFC107" },
+  { id: "low", emoji: "😔", label: "低落", color: "#FF9800" },
+  { id: "bad", emoji: "😢", label: "糟糕", color: "#f44336" },
+];
+
+const WEEK_LABELS = ["日", "一", "二", "三", "四", "五", "六"];
+
+function formatDate(d) {
+  const date = new Date(d);
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
+function formatDisplayDate(d) {
+  const date = new Date(d);
+  return `${date.getMonth()+1}月${date.getDate()}日 周${WEEK_LABELS[date.getDay()]}`;
+}
+function getToday() { return formatDate(new Date()); }
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function getTopic(id) { return TOPICS.find(t => t.id === id) || TOPICS[0]; }
+function getMood(id) { return MOODS.find(m => m.id === id) || MOODS[1]; }
+
+// State
+let entries = [];
+let view = 'home';
+let filterTopic = null;
+let searchQuery = '';
+let selectedEntry = null;
+let writeState = { title: '', content: '', topic: 'life', mood: 'good', editingId: null };
+let confirmDelete = false;
+
+const STORAGE_KEY = 'journal_entries_v1';
+
+function saveToStorage() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); } catch(e) {}
+}
+function loadFromStorage() {
+  try {
+    const d = localStorage.getItem(STORAGE_KEY);
+    if (d) entries = JSON.parse(d);
+  } catch(e) {}
+}
+
+function getFilteredEntries() {
+  let list = entries;
+  if (filterTopic) list = list.filter(e => e.topic === filterTopic);
+  if (searchQuery.trim()) {
+    const q = searchQuery.toLowerCase();
+    list = list.filter(e => e.title.toLowerCase().includes(q) || e.content.toLowerCase().includes(q));
+  }
+  return list;
+}
+
+function getStats() {
+  const total = entries.length;
+  const topicCounts = {}, moodCounts = {}, dateCounts = {};
+  const weekActivity = [0,0,0,0,0,0,0];
+  let streak = 0;
+  entries.forEach(e => {
+    topicCounts[e.topic] = (topicCounts[e.topic]||0)+1;
+    moodCounts[e.mood] = (moodCounts[e.mood]||0)+1;
+    dateCounts[e.date] = (dateCounts[e.date]||0)+1;
+    weekActivity[new Date(e.date).getDay()]++;
+  });
+  const today = new Date();
+  for (let i=0; i<365; i++) {
+    const d = new Date(today); d.setDate(d.getDate()-i);
+    if (dateCounts[formatDate(d)]) streak++; else break;
+  }
+  const last30 = [];
+  for (let i=29; i>=0; i--) {
+    const d = new Date(today); d.setDate(d.getDate()-i);
+    const key = formatDate(d);
+    last30.push({ date: key, count: dateCounts[key]||0, day: d.getDate() });
+  }
+  const totalWords = entries.reduce((s,e) => s + e.content.length, 0);
+  return { total, topicCounts, moodCounts, streak, last30, weekActivity, totalWords };
+}
+
+// Render
+function render() {
+  const app = document.getElementById('app');
+  let html = '';
+
+  // Header
+  html += `<header class="header"><div class="header-inner">`;
+  if (view !== 'home') {
+    html += `<button class="btn-back" onclick="goHome()">← 返回</button>`;
+  } else {
+    html += `<div class="logo">📔 日迹</div>`;
+  }
+  html += `<div class="header-right">`;
+  if (view === 'home') {
+    html += `<button class="btn-stats" onclick="goStats()">📊</button>`;
+    html += `<button class="btn-write" onclick="goWrite()">✏️ 写日记</button>`;
+  }
+  html += `</div></div></header>`;
+
+  html += `<main class="main">`;
+
+  if (view === 'home') html += renderHome();
+  else if (view === 'write') html += renderWrite();
+  else if (view === 'detail') html += renderDetail();
+  else if (view === 'stats') html += renderStats();
+
+  html += `</main>`;
+  app.innerHTML = html;
+}
+
+function renderHome() {
+  const stats = getStats();
+  const filtered = getFilteredEntries();
+  let h = `<div class="view">`;
+
+  // Quick stats
+  h += `<div class="quick-stats">
+    <div class="q-stat"><span class="q-stat-num">${stats.total}</span><span class="q-stat-label">篇日记</span></div>
+    <div class="q-stat-divider"></div>
+    <div class="q-stat"><span class="q-stat-num">${stats.streak}</span><span class="q-stat-label">天连续</span></div>
+    <div class="q-stat-divider"></div>
+    <div class="q-stat"><span class="q-stat-num">${stats.totalWords}</span><span class="q-stat-label">总字数</span></div>
+  </div>`;
+
+  // Search
+  h += `<div class="search-box">
+    <span style="opacity:0.5">🔍</span>
+    <input type="text" placeholder="搜索日记内容..." value="${esc(searchQuery)}" oninput="onSearch(this.value)">
+    <button class="btn-clear" style="display:${searchQuery?'block':'none'}" onclick="clearSearch()">✕</button>
+  </div>`;
+
+  // Topic filters
+  h += `<div class="topic-filters">`;
+  h += `<button class="topic-pill ${!filterTopic?'active':''}" onclick="setFilter(null)">全部</button>`;
+  TOPICS.forEach(t => {
+    const active = filterTopic === t.id;
+    const style = active ? `background:${t.color}30;border-color:${t.color}` : '';
+    const cnt = stats.topicCounts[t.id];
+    h += `<button class="topic-pill ${active?'active':''}" style="${style}" onclick="setFilter('${t.id}')">
+      ${t.icon} ${t.label}${cnt ? `<span class="pill-count">${cnt}</span>` : ''}
+    </button>`;
+  });
+  h += `</div>`;
+
+  // Entries
+  if (filtered.length === 0) {
+    h += `<div class="empty-state"><div class="icon">🌱</div>
+      <p>${entries.length === 0 ? '还没有日记，开始写第一篇吧' : '没有找到匹配的日记'}</p>
+      ${entries.length === 0 ? '<button class="btn-write" style="margin-top:16px" onclick="goWrite()">✏️ 开始记录</button>' : ''}
+    </div>`;
+  } else {
+    h += `<div class="entry-list">`;
+    filtered.forEach((entry, i) => {
+      const topic = getTopic(entry.topic);
+      const mood = getMood(entry.mood);
+      const preview = entry.content.length > 100 ? esc(entry.content.slice(0,100)) + '...' : esc(entry.content);
+      h += `<div class="entry-card" style="animation-delay:${i*0.05}s" onclick="goDetail('${entry.id}')">
+        <div class="entry-card-header">
+          <span class="entry-topic-badge" style="background:${topic.color}25;color:${topic.color}">${topic.icon} ${topic.label}</span>
+          <span class="entry-date">${formatDisplayDate(entry.date)}${entry.backfill ? '<span class="backfill-badge">补录</span>' : ''}</span>
+        </div>
+        <div class="entry-title">${esc(entry.title)}</div>
+        <div class="entry-preview">${preview}</div>
+        <div class="entry-card-footer">
+          <span>${mood.emoji}</span>
+          <span class="entry-word-count">${entry.content.length} 字</span>
+        </div>
+      </div>`;
+    });
+    h += `</div>`;
+  }
+  h += `</div>`;
+  return h;
+}
+
+function renderWrite() {
+  const ws = writeState;
+  let h = `<div class="view">`;
+  h += `<h2 class="view-title">${ws.editingId ? '编辑日记' : '写日记'}</h2>`;
+
+  // Title
+  h += `<div class="form-section"><label class="form-label">标题</label>
+    <input class="title-input" type="text" placeholder="给今天取个标题..." value="${esc(ws.title)}" oninput="writeState.title=this.value">
+  </div>`;
+
+  // Date picker
+  const isToday = ws.date === getToday();
+  const isBackfill = ws.date !== getToday();
+  h += `<div class="form-section"><label class="form-label">日期 ${isBackfill ? '<span class="backfill-badge">📅 补录</span>' : ''}</label>
+    <div class="date-picker-row">
+      <input class="date-input" type="date" value="${ws.date}" max="${getToday()}" onchange="writeState.date=this.value;render()">
+      <button class="btn-today ${isToday?'active':''}" onclick="writeState.date=getToday();render()">今天</button>
+    </div>
+    ${isBackfill ? `<div class="date-hint backfill">将补录到 ${formatDisplayDate(ws.date)}</div>` : ''}
+  </div>`;
+
+  // Topic
+  h += `<div class="form-section"><label class="form-label">主题</label><div class="topic-grid">`;
+  TOPICS.forEach(t => {
+    const active = ws.topic === t.id;
+    const style = active ? `background:${t.color}30;border-color:${t.color};transform:scale(1.05)` : '';
+    h += `<button class="topic-choice ${active?'active':''}" style="${style}" onclick="writeState.topic='${t.id}';render()">
+      <span class="tc-icon">${t.icon}</span><span class="tc-label">${t.label}</span>
+    </button>`;
+  });
+  h += `</div></div>`;
+
+  // Mood
+  h += `<div class="form-section"><label class="form-label">心情</label><div class="mood-row">`;
+  MOODS.forEach(m => {
+    const active = ws.mood === m.id;
+    const style = active ? `background:${m.color}20;border-color:${m.color};transform:scale(1.15)` : '';
+    h += `<button class="mood-choice ${active?'active':''}" style="${style}" onclick="writeState.mood='${m.id}';render()">
+      <span class="mc-emoji">${m.emoji}</span><span class="mc-label">${m.label}</span>
+    </button>`;
+  });
+  h += `</div></div>`;
+
+  // Content
+  h += `<div class="form-section"><label class="form-label">内容</label>
+    <textarea class="content-textarea" placeholder="今天发生了什么..." rows="10" oninput="writeState.content=this.value;document.getElementById('cc').textContent=this.value.length+' 字'">${esc(ws.content)}</textarea>
+    <div class="char-count" id="cc">${ws.content.length} 字</div>
+  </div>`;
+
+  h += `<button class="btn-save ${ws.content.trim()?'':'disabled'}" onclick="handleSave()">
+    ${ws.editingId ? '💾 保存修改' : '✨ 保存日记'}
+  </button>`;
+  h += `</div>`;
+  return h;
+}
+
+function renderDetail() {
+  if (!selectedEntry) return '';
+  const entry = selectedEntry;
+  const topic = getTopic(entry.topic);
+  const mood = getMood(entry.mood);
+  let h = `<div class="view">`;
+
+  h += `<div class="detail-header">
+    <span class="entry-topic-badge" style="background:${topic.color}25;color:${topic.color};font-size:14px">${topic.icon} ${topic.label}</span>
+    <span class="mood-icon">${mood.emoji}</span>
+  </div>`;
+  h += `<h2 class="detail-title">${esc(entry.title)}</h2>`;
+  h += `<p class="detail-date">${formatDisplayDate(entry.date)}${entry.backfill ? ' <span class="backfill-badge">📅 补录</span>' : ''}</p>`;
+  h += `<div class="detail-content">${esc(entry.content)}</div>`;
+  h += `<div class="detail-meta"><span>${entry.content.length} 字</span></div>`;
+
+  h += `<div class="detail-actions">
+    <button class="btn-edit" onclick="handleEdit('${entry.id}')">✏️ 编辑</button>`;
+  if (!confirmDelete) {
+    h += `<button class="btn-delete" onclick="confirmDelete=true;render()">🗑 删除</button>`;
+  } else {
+    h += `<button class="btn-confirm-delete" onclick="handleDelete('${entry.id}')">⚠️ 确认删除</button>`;
+  }
+  h += `</div></div>`;
+  return h;
+}
+
+function renderStats() {
+  const stats = getStats();
+  const maxDay = Math.max(...stats.last30.map(d => d.count), 1);
+  const maxWeek = Math.max(...stats.weekActivity, 1);
+  const totalMoods = Object.values(stats.moodCounts).reduce((a,b) => a+b, 0) || 1;
+
+  let h = `<div class="view"><h2 class="view-title">📊 统计分析</h2>`;
+
+  // Overview
+  h += `<div class="stats-grid">
+    <div class="stat-card"><div class="sc-icon">📝</div><div class="sc-value">${stats.total}</div><div class="sc-label">总日记数</div></div>
+    <div class="stat-card"><div class="sc-icon">🔥</div><div class="sc-value">${stats.streak}</div><div class="sc-label">连续天数</div></div>
+    <div class="stat-card"><div class="sc-icon">✍️</div><div class="sc-value">${stats.totalWords}</div><div class="sc-label">总字数</div></div>
+    <div class="stat-card"><div class="sc-icon">📄</div><div class="sc-value">${stats.total ? Math.round(stats.totalWords/stats.total) : 0}</div><div class="sc-label">平均字数</div></div>
+  </div>`;
+
+  // 30 day heatmap
+  h += `<div class="chart-card"><h3 class="chart-title">近 30 天活跃度</h3><div class="heatmap-row">`;
+  stats.last30.forEach((d, i) => {
+    const bg = d.count === 0 ? '#f0ebe4' : `rgba(142,120,80,${(0.25 + (d.count/maxDay)*0.75).toFixed(2)})`;
+    h += `<div class="heatmap-col"><div class="heatmap-cell" style="background:${bg}" title="${d.date}: ${d.count} 篇"></div>
+      ${i%5===0 ? `<span class="heatmap-label">${d.day}</span>` : ''}
+    </div>`;
+  });
+  h += `</div></div>`;
+
+  // Weekly bar chart
+  h += `<div class="chart-card"><h3 class="chart-title">每周写作习惯</h3><div class="bar-chart">`;
+  WEEK_LABELS.forEach((label, i) => {
+    const pct = (stats.weekActivity[i] / maxWeek * 100).toFixed(0);
+    h += `<div class="bar-col"><div class="bar-track"><div class="bar-fill" style="height:${pct}%"></div></div><span class="bar-label">${label}</span></div>`;
+  });
+  h += `</div></div>`;
+
+  // Topic distribution
+  h += `<div class="chart-card"><h3 class="chart-title">主题分布</h3>`;
+  TOPICS.forEach(t => {
+    const count = stats.topicCounts[t.id] || 0;
+    const pct = stats.total ? (count/stats.total*100).toFixed(0) : 0;
+    h += `<div class="topic-bar">
+      <div class="topic-bar-label">${t.icon} ${t.label}</div>
+      <div class="topic-bar-track"><div class="topic-bar-fill" style="width:${pct}%;background:${t.color}"></div></div>
+      <span class="topic-bar-count">${count}</span>
+    </div>`;
+  });
+  h += `</div>`;
+
+  // Mood distribution
+  h += `<div class="chart-card"><h3 class="chart-title">心情记录</h3><div class="mood-stats">`;
+  MOODS.forEach(m => {
+    const count = stats.moodCounts[m.id] || 0;
+    const pct = (count/totalMoods*100).toFixed(0);
+    h += `<div class="mood-stat-item">
+      <span class="ms-emoji">${m.emoji}</span>
+      <span class="ms-pct">${pct}%</span>
+      <span class="ms-count">${count} 次</span>
+    </div>`;
+  });
+  h += `</div></div>`;
+
+  h += `</div>`;
+  return h;
+}
+
+// Actions
+function goHome() { view = 'home'; confirmDelete = false; resetWrite(); render(); }
+function goWrite() { resetWrite(); view = 'write'; render(); }
+function goStats() { view = 'stats'; render(); }
+function goDetail(id) {
+  selectedEntry = entries.find(e => e.id === id);
+  confirmDelete = false;
+  view = 'detail';
+  render();
+}
+function setFilter(topic) {
+  filterTopic = filterTopic === topic ? null : topic;
+  render();
+}
+function onSearch(val) { searchQuery = val; render(); }
+function clearSearch() { searchQuery = ''; render(); }
+
+function resetWrite() {
+  writeState = { title: '', content: '', topic: 'life', mood: 'good', editingId: null, date: getToday() };
+}
+
+function handleSave() {
+  const ws = writeState;
+  if (!ws.content.trim()) return;
+  const now = new Date().toISOString();
+  const isBackfill = ws.date !== getToday();
+  if (ws.editingId) {
+    entries = entries.map(e => e.id === ws.editingId
+      ? { ...e, title: ws.title.trim() || '无标题', content: ws.content, topic: ws.topic, mood: ws.mood, date: ws.date, updatedAt: now, backfill: ws.date !== formatDate(new Date(e.createdAt)) }
+      : e
+    );
+  } else {
+    entries.unshift({
+      id: Date.now().toString(),
+      title: ws.title.trim() || '无标题',
+      content: ws.content,
+      topic: ws.topic,
+      mood: ws.mood,
+      date: ws.date,
+      createdAt: now,
+      updatedAt: now,
+      backfill: isBackfill,
+    });
+  }
+  // Sort entries by date descending, then by createdAt descending
+  entries.sort((a, b) => {
+    if (a.date !== b.date) return b.date.localeCompare(a.date);
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+  saveToStorage();
+  resetWrite();
+  view = 'home';
+  render();
+}
+
+function handleEdit(id) {
+  const entry = entries.find(e => e.id === id);
+  if (!entry) return;
+  writeState = { title: entry.title, content: entry.content, topic: entry.topic, mood: entry.mood, editingId: entry.id, date: entry.date };
+  view = 'write';
+  render();
+}
+
+function handleDelete(id) {
+  entries = entries.filter(e => e.id !== id);
+  saveToStorage();
+  confirmDelete = false;
+  view = 'home';
+  render();
+}
+
+// Init
+loadFromStorage();
+document.getElementById('loading').style.display = 'none';
+render();
+</script>
+</body>
+</html>
